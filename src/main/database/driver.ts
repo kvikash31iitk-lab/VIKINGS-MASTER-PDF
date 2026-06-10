@@ -45,7 +45,8 @@ class NullDriver implements DatabaseDriver {
 
 export function createDriver(dbPath: string, logger: Logger): DatabaseDriver {
   try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    // Runtime require keeps startup alive when the native module is missing.
+    // eslint-disable-next-line @typescript-eslint/no-var-requires, @typescript-eslint/consistent-type-imports
     const BetterSqlite3 = require('better-sqlite3') as typeof import('better-sqlite3');
     const db = new BetterSqlite3(dbPath);
     db.pragma('journal_mode = WAL');

@@ -57,6 +57,10 @@ export const IPC = {
   AiHistoryAdd: 'ai-history:add',
   AiHistoryList: 'ai-history:list',
 
+  // OCR (tesseract runs main-side: free of renderer CSP, off the UI thread)
+  OcrRecognize: 'ocr:recognize',
+  OcrListCachedLanguages: 'ocr:list-cached-languages',
+
   // Heavy PDF operations (main-side worker pool)
   PdfEncrypt: 'pdf:encrypt',
   PdfDecrypt: 'pdf:decrypt',

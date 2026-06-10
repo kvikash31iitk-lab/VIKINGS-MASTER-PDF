@@ -1,0 +1,192 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ════════════════════════ Theme tokens ════════════════════════
+   Three first-class themes: light, dark (VS Code/Win11 calibre),
+   high-contrast. Switched via data-theme on <html>.              */
+
+:root,
+[data-theme='light'] {
+  --vk-bg: #f3f4f6;
+  --vk-surface: #ffffff;
+  --vk-surface-2: #f8f9fb;
+  --vk-surface-3: #eef0f4;
+  --vk-border: #e2e5ea;
+  --vk-border-strong: #c9cdd6;
+  --vk-text: #1b1f27;
+  --vk-text-muted: #5a6271;
+  --vk-text-faint: #8b93a3;
+  --vk-accent: #2563eb;
+  --vk-accent-hover: #1d4fd8;
+  --vk-accent-muted: #e3ebfd;
+  --vk-accent-text: #ffffff;
+  --vk-danger: #d13438;
+  --vk-warning: #b45309;
+  --vk-success: #107c10;
+  --vk-workspace: #585c66;
+  --vk-shadow-flyout: 0 6px 20px rgba(16, 20, 28, 0.16), 0 1px 3px rgba(16, 20, 28, 0.1);
+  --vk-shadow-dialog: 0 14px 44px rgba(16, 20, 28, 0.28), 0 2px 8px rgba(16, 20, 28, 0.14);
+  color-scheme: light;
+}
+
+[data-theme='dark'] {
+  --vk-bg: #16181d;
+  --vk-surface: #1f2229;
+  --vk-surface-2: #262a33;
+  --vk-surface-3: #2d323d;
+  --vk-border: #34394566;
+  --vk-border-strong: #454c5b;
+  --vk-text: #e8eaf0;
+  --vk-text-muted: #9aa2b2;
+  --vk-text-faint: #6b7383;
+  --vk-accent: #3b82f6;
+  --vk-accent-hover: #5a95f8;
+  --vk-accent-muted: #1f3057;
+  --vk-accent-text: #ffffff;
+  --vk-danger: #f1707a;
+  --vk-warning: #f0b35c;
+  --vk-success: #6ccb5f;
+  --vk-workspace: #101216;
+  --vk-shadow-flyout: 0 6px 24px rgba(0, 0, 0, 0.5), 0 1px 3px rgba(0, 0, 0, 0.4);
+  --vk-shadow-dialog: 0 16px 52px rgba(0, 0, 0, 0.62), 0 2px 10px rgba(0, 0, 0, 0.45);
+  color-scheme: dark;
+}
+
+[data-theme='high-contrast'] {
+  --vk-bg: #000000;
+  --vk-surface: #000000;
+  --vk-surface-2: #0a0a0a;
+  --vk-surface-3: #111111;
+  --vk-border: #ffffff;
+  --vk-border-strong: #ffffff;
+  --vk-text: #ffffff;
+  --vk-text-muted: #ffff00;
+  --vk-text-faint: #c8c8c8;
+  --vk-accent: #00e5ff;
+  --vk-accent-hover: #6ff2ff;
+  --vk-accent-muted: #003a44;
+  --vk-accent-text: #000000;
+  --vk-danger: #ff5d64;
+  --vk-warning: #ffd34d;
+  --vk-success: #51ff7e;
+  --vk-workspace: #000000;
+  --vk-shadow-flyout: 0 0 0 1px #ffffff;
+  --vk-shadow-dialog: 0 0 0 2px #ffffff;
+  color-scheme: dark;
+}
+
+/* ════════════════════════ Base ════════════════════════ */
+
+html,
+body,
+#root {
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  @apply bg-app-bg text-app-text font-ui text-sm antialiased;
+  user-select: none;
+}
+
+[data-animations='off'] * {
+  animation: none !important;
+  transition: none !important;
+}
+
+/* Window drag regions for the frameless shell */
+.vk-drag {
+  -webkit-app-region: drag;
+}
+.vk-no-drag {
+  -webkit-app-region: no-drag;
+}
+
+/* Focus visibility (WCAG) */
+:focus-visible {
+  outline: 2px solid var(--vk-accent);
+  outline-offset: 1px;
+  border-radius: 4px;
+}
+
+/* ════════════════════════ Scrollbars ════════════════════════ */
+
+::-webkit-scrollbar {
+  width: 11px;
+  height: 11px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--vk-border-strong);
+  border-radius: 8px;
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--vk-text-faint);
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+/* ════════════════════════ Viewer layers ════════════════════════ */
+
+.vk-page-shadow {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35), 0 0 1px rgba(0, 0, 0, 0.4);
+}
+
+/* PDF.js text layer */
+.vk-textlayer {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  line-height: 1;
+  user-select: text;
+  cursor: text;
+}
+.vk-textlayer > span {
+  color: transparent;
+  position: absolute;
+  white-space: pre;
+  transform-origin: 0% 0%;
+}
+.vk-textlayer ::selection {
+  background: color-mix(in srgb, var(--vk-accent) 35%, transparent);
+}
+
+.vk-search-highlight {
+  position: absolute;
+  background: rgba(255, 200, 40, 0.45);
+  border-radius: 2px;
+  pointer-events: none;
+}
+.vk-search-highlight.active {
+  background: rgba(255, 120, 40, 0.6);
+  outline: 1.5px solid #ff7828;
+}
+
+.vk-redact-mark {
+  position: absolute;
+  background: rgba(209, 52, 56, 0.3);
+  border: 1.5px dashed var(--vk-danger);
+  cursor: pointer;
+}
+
+/* Reading mode hides chrome */
+.vk-reading-mode .vk-chrome {
+  display: none;
+}
+
+@keyframes vk-progress-indeterminate {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(300%);
+  }
+}
+.vk-progress-indeterminate {
+  animation: vk-progress-indeterminate 1.2s ease-in-out infinite;
+}

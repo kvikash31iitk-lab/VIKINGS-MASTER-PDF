@@ -25,12 +25,15 @@ const STOPWORDS = new Set(
 export function splitSentences(text: string): string[] {
   return text
     .replace(/\s+/g, ' ')
+    // Devanagari block ranges are intentional (Hindi sentence support).
+    // eslint-disable-next-line no-misleading-character-class
     .split(/(?<=[.!?।])\s+(?=[A-Z0-9"'(ऀ-ॿ])/)
     .map((s) => s.trim())
     .filter((s) => s.length > 12 && s.length < 600);
 }
 
 function tokenize(text: string): string[] {
+  // eslint-disable-next-line no-misleading-character-class
   return (text.toLowerCase().match(/[a-zऀ-ॿ][a-z0-9ऀ-ॿ'-]{1,}/g) ?? []).filter(
     (w) => !STOPWORDS.has(w)
   );

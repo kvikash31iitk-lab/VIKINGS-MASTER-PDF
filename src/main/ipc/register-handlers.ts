@@ -20,6 +20,7 @@ import type { AiProxyService } from '../services/ai-proxy-service';
 import type { UpdateService } from '../services/update-service';
 import type { PluginService } from '../services/plugin-service';
 import type { WorkerPool } from '../workers/worker-pool';
+import type { OcrMainService, RecognizeRequest } from '../services/ocr-main-service';
 import type {
   RecentFilesRepository,
   OcrHistoryRepository,
@@ -91,6 +92,7 @@ export function registerIpcHandlers(container: Container, repos: Repositories): 
   const updates = container.resolve<UpdateService>(TOKENS.Updates);
   const plugins = container.resolve<PluginService>(TOKENS.Plugins);
   const pool = container.resolve<WorkerPool>(TOKENS.WorkerPool);
+  const ocr = container.resolve<OcrMainService>('ocr-main-service');
 
   // ── App / window ───────────────────────────────────────────────
   handle(IPC.AppGetInfo, () => ({
@@ -180,6 +182,10 @@ export function registerIpcHandlers(container: Container, repos: Repositories): 
   handle(IPC.OcrHistoryList, () => repos.ocrHistory.list());
   handle(IPC.AiHistoryAdd, (entry: AiHistoryEntry) => repos.aiHistory.add(entry));
   handle(IPC.AiHistoryList, () => repos.aiHistory.list());
+
+  // ── OCR ────────────────────────────────────────────────────────
+  handle(IPC.OcrRecognize, (req: RecognizeRequest) => ocr.recognize(req));
+  handle(IPC.OcrListCachedLanguages, () => ocr.listCachedLanguages());
 
   // ── Heavy PDF ops (worker pool) ────────────────────────────────
   handle(IPC.PdfEncrypt, async (req: EncryptRequest) => {

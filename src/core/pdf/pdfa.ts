@@ -46,6 +46,8 @@ const LEVEL_PARTS: Record<PdfALevel, { part: number; conformance: string }> = {
 function buildXmp(level: PdfALevel, title: string, producer: string): string {
   const { part, conformance } = LEVEL_PARTS[level];
   const now = new Date().toISOString();
+  // The U+FEFF in begin="" is REQUIRED by the XMP packet spec.
+  // eslint-disable-next-line no-irregular-whitespace
   return `<?xpacket begin="﻿" id="W5M0MpCehiHzreSzNTczkc9d"?>
 <x:xmpmeta xmlns:x="adobe:ns:meta/">
  <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">

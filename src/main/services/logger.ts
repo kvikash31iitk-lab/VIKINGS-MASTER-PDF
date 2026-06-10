@@ -2,7 +2,7 @@
  * Application logger — daily files with size-capped rotation, separate error
  * and audit logs, console mirroring in development, zip export.
  */
-import { createWriteStream, existsSync, mkdirSync, readdirSync, statSync, unlinkSync } from 'node:fs';
+import { createWriteStream, existsSync, mkdirSync, readdirSync, statSync, unlinkSync, renameSync } from 'node:fs';
 import { readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { WriteStream } from 'node:fs';
@@ -66,13 +66,9 @@ export class Logger {
       if (existsSync(oldest)) unlinkSync(oldest);
       for (let i = MAX_GENERATIONS - 1; i >= 1; i--) {
         const from = `${file}.${i}`;
-        if (existsSync(from)) {
-          // eslint-disable-next-line @typescript-eslint/no-require-imports
-          require('node:fs').renameSync(from, `${file}.${i + 1}`);
-        }
+        if (existsSync(from)) renameSync(from, `${file}.${i + 1}`);
       }
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      require('node:fs').renameSync(file, `${file}.1`);
+      renameSync(file, `${file}.1`);
     } catch {
       /* rotation is best-effort */
     }

@@ -2,7 +2,8 @@
  * Form builder — creates AcroForm fields from designer specs and supports
  * fill / read / flatten / data import-export.
  */
-import { PDFDocument, PDFName, PDFHexString, PDFDict, PDFArray, rgb } from 'pdf-lib';
+import type { PDFDict} from 'pdf-lib';
+import { PDFDocument, PDFName, PDFHexString, PDFArray, rgb } from 'pdf-lib';
 import { hexToRgb } from './utils';
 
 export interface FieldRect {

@@ -7,7 +7,7 @@ import { app, BrowserWindow } from 'electron';
 import { join } from 'node:path';
 import { mkdirSync } from 'node:fs';
 import { IPC } from '../shared/ipc-channels';
-import { APP_ID, AUTOSAVE_DIR, LOGS_DIR, PLUGINS_DIR } from '../shared/constants';
+import { APP_ID, AUTOSAVE_DIR, LOGS_DIR, PLUGINS_DIR, TESSDATA_DIR } from '../shared/constants';
 import { container, TOKENS } from './container';
 import { Logger } from './services/logger';
 import { createDriver } from './database/driver';
@@ -33,6 +33,7 @@ import { PrintService } from './services/print-service';
 import { AiProxyService } from './services/ai-proxy-service';
 import { UpdateService } from './services/update-service';
 import { PluginService } from './services/plugin-service';
+import { OcrMainService } from './services/ocr-main-service';
 import { WorkerPool } from './workers/worker-pool';
 import { WindowManager } from './window-manager';
 import { hardenSessions } from './security';
@@ -134,6 +135,7 @@ function onReady(): void {
   container.register(TOKENS.AiProxy, () => new AiProxyService(logger));
   container.register(TOKENS.Updates, () => new UpdateService(logger, app.isPackaged));
   container.register(TOKENS.Plugins, () => new PluginService(pluginsDir, logger));
+  container.register('ocr-main-service', () => new OcrMainService(join(userData, TESSDATA_DIR), logger));
   container.register(
     TOKENS.WorkerPool,
     () => new WorkerPool(logger, settings.get<number>('performance.workerThreads'))
