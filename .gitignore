@@ -43,3 +43,6 @@ test-results/
 
 # TypeScript incremental state
 *.tsbuildinfo
+
+# Screenshot tour output
+screenshots/

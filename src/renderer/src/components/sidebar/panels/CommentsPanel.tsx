@@ -5,15 +5,15 @@ import { useCommentsStore, useToolStore } from '../../../stores/ui-stores';
 import { annotationService } from '../../../services/annotation-service';
 import { Icon } from '../../common/Icon';
 import { Button, Checkbox, EmptyState, Select, TextInput } from '../../common/controls';
-import { cx } from '../../../utils';
+import { cx, EMPTY } from '../../../utils';
 
 export function CommentsPanel() {
   const doc = useActiveDoc();
   const updateView = useDocumentsStore((s) => s.updateView);
-  const imported = useCommentsStore((s) => (doc ? s.byDoc[doc.id] ?? [] : []));
+  const imported = useCommentsStore((s) => (doc ? s.byDoc[doc.id] ?? EMPTY : EMPTY));
   const filterAuthor = useCommentsStore((s) => s.filterAuthor);
   const showResolved = useCommentsStore((s) => s.showResolved);
-  const drafts = useToolStore((s) => (doc ? s.drafts[doc.id] ?? [] : []));
+  const drafts = useToolStore((s) => (doc ? s.drafts[doc.id] ?? EMPTY : EMPTY));
   const [replyFor, setReplyFor] = useState<string | null>(null);
   const [replyText, setReplyText] = useState('');
 

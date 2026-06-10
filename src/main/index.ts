@@ -41,14 +41,6 @@ import { registerIpcHandlers, type Repositories } from './ipc/register-handlers'
 
 app.setAppUserModelId(APP_ID);
 
-// ── Single instance ─────────────────────────────────────────────
-const gotLock = app.requestSingleInstanceLock();
-if (!gotLock) {
-  app.quit();
-} else {
-  bootstrap();
-}
-
 let windowManager: WindowManager | null = null;
 let sessionRepo: SessionRepository | null = null;
 /** Files queued from OS open events before the renderer is ready. */
@@ -56,6 +48,15 @@ const pendingOpenFiles: string[] = [];
 
 function collectFileArgs(argv: string[]): string[] {
   return argv.filter((a) => a.toLowerCase().endsWith('.pdf'));
+}
+
+// ── Single instance ─────────────────────────────────────────────
+// Declared after module-level state so bootstrap() can reference it safely.
+const gotLock = app.requestSingleInstanceLock();
+if (!gotLock) {
+  app.quit();
+} else {
+  bootstrap();
 }
 
 function bootstrap(): void {

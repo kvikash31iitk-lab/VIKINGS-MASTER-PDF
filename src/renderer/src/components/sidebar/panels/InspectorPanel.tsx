@@ -8,11 +8,12 @@ import { useCommentsStore, useToolStore, useDialogStore } from '../../../stores/
 import { eventBus } from '@shared/event-bus';
 import { Button, EmptyState } from '../../common/controls';
 import { Icon } from '../../common/Icon';
+import { EMPTY } from '../../../utils';
 
 export function InspectorPanel() {
   const doc = useActiveDoc();
-  const comments = useCommentsStore((s) => (doc ? s.byDoc[doc.id] ?? [] : []));
-  const drafts = useToolStore((s) => (doc ? s.drafts[doc.id] ?? [] : []));
+  const comments = useCommentsStore((s) => (doc ? s.byDoc[doc.id] ?? EMPTY : EMPTY));
+  const drafts = useToolStore((s) => (doc ? s.drafts[doc.id] ?? EMPTY : EMPTY));
   const show = useDialogStore((s) => s.show);
   const [fieldCount, setFieldCount] = useState(0);
   const [attachmentCount, setAttachmentCount] = useState(0);

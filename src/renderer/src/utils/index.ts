@@ -1,5 +1,13 @@
 /** Small renderer utilities shared across components. */
 
+/**
+ * Shared frozen empty array. Zustand selectors must return a STABLE reference
+ * when "empty" — `s.map[id] ?? []` allocates a new array every call, which makes
+ * useSyncExternalStore believe the store changed on every render (infinite loop,
+ * React error #185). Use `s.map[id] ?? EMPTY` instead.
+ */
+export const EMPTY: never[] = Object.freeze([]) as never[];
+
 /** Conditional class-name join (clsx-style, zero-dep). */
 export function cx(...parts: Array<string | false | null | undefined>): string {
   return parts.filter(Boolean).join(' ');

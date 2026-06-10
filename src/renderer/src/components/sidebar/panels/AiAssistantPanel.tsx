@@ -6,11 +6,11 @@ import { useSettingsStore } from '../../../stores/settings-store';
 import { aiService } from '../../../services/ai-service';
 import { Icon } from '../../common/Icon';
 import { Button, EmptyState, Select, Spinner } from '../../common/controls';
-import { cx } from '../../../utils';
+import { cx, EMPTY } from '../../../utils';
 
 export function AiAssistantPanel() {
   const doc = useActiveDoc();
-  const messages = useAiStore((s) => (doc ? s.conversations[doc.id] ?? [] : []));
+  const messages = useAiStore((s) => (doc ? s.conversations[doc.id] ?? EMPTY : EMPTY));
   const busy = useAiStore((s) => s.busy);
   const provider = useSettingsStore((s) => s.settings.ai.provider);
   const update = useSettingsStore((s) => s.update);

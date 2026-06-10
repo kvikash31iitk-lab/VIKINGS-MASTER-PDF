@@ -1,0 +1,18 @@
+import { _electron as electron } from '@playwright/test';
+import { join } from 'node:path';
+const root = process.cwd();
+const app = await electron.launch({ args: [join(root,'out/main/index.js'),'--no-sandbox','--disable-gpu','--disable-dev-shm-usage'] });
+const page = await app.firstWindow();
+page.on('console', (m) => console.log(`[console.${m.type()}] ${m.text()}`));
+page.on('pageerror', (e) => console.log(`[pageerror] ${e.message}`));
+await page.waitForSelector('text=Professional PDF Editing Without Limits', { timeout: 20000 });
+await page.keyboard.press('Control+N');
+await page.waitForSelector('text=Blank (A4)');
+await page.getByRole('button', { name: /Blank \(A4\)/ }).click();
+await page.waitForTimeout(4000);
+const tabs = await page.getByRole('tab').allInnerTexts();
+console.log('TABS:', JSON.stringify(tabs));
+const hasPage = await page.locator('[data-page-index="0"]').count();
+const canvases = await page.locator('canvas').count();
+console.log('page-index els:', hasPage, 'canvases:', canvases);
+await app.close();

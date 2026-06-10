@@ -12,6 +12,7 @@ import { useDocumentsStore } from '../../stores/documents-store';
 import { AnnotationOverlay } from './AnnotationOverlay';
 import { FormDesignerLayer } from './FormDesignerLayer';
 import type { PageLayout } from '../../types';
+import { EMPTY } from '../../utils';
 
 export const PageView = memo(function PageView({
   docId,
@@ -216,7 +217,7 @@ function SearchHighlights({
 // ───────────────────────── Redaction marks ─────────────────────────
 
 function RedactionMarks({ docId, pageIndex, scale }: { docId: string; pageIndex: number; scale: number }) {
-  const marks = useRedactionStore((s) => s.byDoc[docId] ?? []);
+  const marks = useRedactionStore((s) => s.byDoc[docId] ?? EMPTY);
   const remove = useRedactionStore((s) => s.remove);
   const pageMarks = marks.filter((m) => m.pageIndex === pageIndex);
   return (

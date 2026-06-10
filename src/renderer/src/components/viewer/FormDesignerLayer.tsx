@@ -4,7 +4,7 @@
  */
 import { useRef, useState } from 'react';
 import { useFormsStore, useDialogStore } from '../../stores/ui-stores';
-import { uid, cx, clamp } from '../../utils';
+import { uid, cx, clamp, EMPTY } from '../../utils';
 import type { FormFieldDraft } from '../../types';
 
 const FIELD_COLORS: Record<FormFieldDraft['kind'], string> = {
@@ -27,7 +27,7 @@ export function FormDesignerLayer({
   scale: number;
 }) {
   const hostRef = useRef<HTMLDivElement>(null);
-  const fields = useFormsStore((s) => s.byDoc[docId] ?? []);
+  const fields = useFormsStore((s) => s.byDoc[docId] ?? EMPTY);
   const selectedId = useFormsStore((s) => s.selectedFieldId);
   const pendingKind = useFormsStore((s) => s.pendingKind);
   const gridSnap = useFormsStore((s) => s.gridSnap);

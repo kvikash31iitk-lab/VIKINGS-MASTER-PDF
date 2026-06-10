@@ -12,7 +12,7 @@ import { documentService } from '../../services/document-service';
 import { composePageContent } from '@core/pdf/content-composer';
 import { ipc } from '../../services/ipc';
 import { IMAGE_FILTERS } from '@shared/constants';
-import { uid } from '../../utils';
+import { uid, EMPTY } from '../../utils';
 import type { AnnotationDraft, ToolId } from '../../types';
 
 const DRAW_TOOLS: ToolId[] = [
@@ -63,7 +63,7 @@ export function AnnotationOverlay({
   const opacity = useToolStore((s) => s.opacity);
   const fontSize = useToolStore((s) => s.fontSize);
   const author = useToolStore((s) => s.author);
-  const drafts = useToolStore((s) => s.drafts[docId] ?? []);
+  const drafts = useToolStore((s) => s.drafts[docId] ?? EMPTY);
   const pageDrafts = useMemo(() => drafts.filter((d) => d.pageIndex === pageIndex), [drafts, pageIndex]);
 
   const interactive = DRAW_TOOLS.includes(tool);

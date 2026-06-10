@@ -10,7 +10,7 @@ import { Modal } from '../common/Modal';
 import { Button, Field, TextInput, Checkbox, RadioGroup, Spinner, EmptyState } from '../common/controls';
 import { Icon } from '../common/Icon';
 import { REDACTION_PATTERNS } from '@shared/constants';
-import { baseName } from '../../utils';
+import { baseName, EMPTY } from '../../utils';
 import type { PdfPermissionFlags, SignatureVerificationResult } from '@shared/types';
 
 export function EncryptDialog() {
@@ -121,7 +121,7 @@ export function RemoveSecurityDialog() {
 export function RedactDialog() {
   const doc = useActiveDoc();
   const close = useDialogStore((s) => s.close);
-  const marks = useRedactionStore((s) => (doc ? s.byDoc[doc.id] ?? [] : []));
+  const marks = useRedactionStore((s) => (doc ? s.byDoc[doc.id] ?? EMPTY : EMPTY));
   const [query, setQuery] = useState('');
   const [useRegex, setUseRegex] = useState(false);
   const [patterns, setPatterns] = useState<string[]>([]);
