@@ -40,3 +40,6 @@ test-results/
 # Local env
 .env
 .env.local
+
+# TypeScript incremental state
+*.tsbuildinfo
