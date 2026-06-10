@@ -1,0 +1,5 @@
+# Used by electron-updater when running in development mode.
+provider: generic
+url: https://updates.vikingstech.example/master-pdf
+channel: latest
+updaterCacheDirName: vikings-master-pdf-updater

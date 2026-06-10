@@ -1,0 +1,91 @@
+appId: com.vikingstech.masterpdf
+productName: Vikings Master PDF
+copyright: Copyright © 2026 Vikings Technologies
+
+directories:
+  buildResources: build
+  output: release/${version}
+
+files:
+  - out/**
+  - '!**/.vscode/*'
+  - '!src/*'
+  - '!docs/*'
+  - '!electron.vite.config.{js,ts,mjs,cjs}'
+  - '!{.eslintrc.cjs,.prettierrc.json,tailwind.config.cjs,postcss.config.cjs}'
+  - '!{tsconfig.json,tsconfig.node.json,tsconfig.web.json,vitest.config.ts,playwright.config.ts}'
+
+asarUnpack:
+  - resources/**
+  - '**/node_modules/better-sqlite3/**'
+
+# ---------------------------------------------------------------------------
+# Windows (Phase 1)
+# ---------------------------------------------------------------------------
+win:
+  executableName: VikingsMasterPDF
+  icon: build/icon.ico
+  artifactName: ${productName}-Setup-${version}.${ext}
+  target:
+    - target: nsis
+      arch: [x64]
+    - target: portable
+      arch: [x64]
+
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: always
+  createStartMenuShortcut: true
+  shortcutName: Vikings Master PDF
+  uninstallDisplayName: Vikings Master PDF
+  deleteAppDataOnUninstall: false
+
+fileAssociations:
+  - ext: pdf
+    name: PDF Document
+    description: Portable Document Format
+    role: Editor
+
+# ---------------------------------------------------------------------------
+# macOS (Phase 2)
+# ---------------------------------------------------------------------------
+mac:
+  icon: build/icon.icns
+  category: public.app-category.productivity
+  hardenedRuntime: true
+  gatekeeperAssess: false
+  entitlements: build/entitlements.mac.plist
+  entitlementsInherit: build/entitlements.mac.plist
+  target:
+    - target: dmg
+      arch: [x64, arm64]
+    - target: zip
+      arch: [x64, arm64]
+
+# ---------------------------------------------------------------------------
+# Linux (Phase 3)
+# ---------------------------------------------------------------------------
+linux:
+  icon: build/icons
+  category: Office
+  maintainer: Vikings Technologies
+  target:
+    - target: AppImage
+      arch: [x64]
+    - target: deb
+      arch: [x64]
+    - target: rpm
+      arch: [x64]
+
+# ---------------------------------------------------------------------------
+# Auto update — generic provider (point at your own release server or use
+# the GitHub provider in CI). electron-updater reads this block.
+# ---------------------------------------------------------------------------
+publish:
+  provider: generic
+  url: https://updates.vikingstech.example/master-pdf
+  channel: latest
+
+npmRebuild: true
