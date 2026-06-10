@@ -25,6 +25,13 @@
       "@renderer/*": ["src/renderer/src/*"]
     }
   },
-  "include": ["src/renderer/**/*", "src/shared/**/*", "src/core/**/*"],
+  "include": [
+    "src/renderer/**/*",
+    "src/shared/**/*",
+    "src/core/**/*",
+    "src/tests/stores/**/*",
+    "src/tests/renderer/**/*",
+    "src/tests/setup/**/*"
+  ],
   "exclude": ["src/core/node/**/*"]
 }

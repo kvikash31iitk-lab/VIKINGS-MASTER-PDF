@@ -1,0 +1,9 @@
+{
+  "id": "word-counter",
+  "name": "Word Counter",
+  "version": "1.0.0",
+  "description": "Adds a Tools ribbon button and panel that counts words in the active document.",
+  "author": "Vikings Technologies",
+  "main": "index.js",
+  "permissions": ["commands", "ribbon", "panels", "storage"]
+}

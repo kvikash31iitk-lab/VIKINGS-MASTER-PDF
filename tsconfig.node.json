@@ -32,5 +32,6 @@
     "src/shared/**/*",
     "src/core/**/*",
     "src/tests/**/*"
-  ]
+  ],
+  "exclude": ["src/tests/stores/**", "src/tests/renderer/**", "src/tests/setup/**"]
 }
