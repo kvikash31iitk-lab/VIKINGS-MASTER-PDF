@@ -79,10 +79,11 @@ export function AnnotationOverlay({
       renderOnAddRemove: true
     });
     fabricRef.current = canvas;
+    const draftMap = objectToDraft.current; // stable Map instance for cleanup
     return () => {
       void canvas.dispose();
       fabricRef.current = null;
-      objectToDraft.current.clear();
+      draftMap.clear();
     };
     // Recreate only per page mount — size/zoom handled below.
     // eslint-disable-next-line react-hooks/exhaustive-deps

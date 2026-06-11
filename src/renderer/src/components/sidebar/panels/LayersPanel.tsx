@@ -44,6 +44,8 @@ export function LayersPanel() {
     return () => {
       cancelled = true;
     };
+    // Narrow deps by design: whole-doc identity churns on dirty-flag updates.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [doc?.id, doc?.fileSize]);
 
   if (!doc) return <EmptyState icon="layers" title="No document open" />;
