@@ -80,12 +80,15 @@ linux:
       arch: [x64]
 
 # ---------------------------------------------------------------------------
-# Auto update — generic provider (point at your own release server or use
-# the GitHub provider in CI). electron-updater reads this block.
+# Auto update — published to GitHub Releases. electron-builder bakes this block
+# into the app as app-update.yml, so the installed app checks this repo's
+# Releases for new versions and updates itself in place. The repo is public,
+# so no token is needed by clients to read releases.
 # ---------------------------------------------------------------------------
 publish:
-  provider: generic
-  url: https://updates.vikingstech.example/master-pdf
-  channel: latest
+  provider: github
+  owner: kvikash31iitk-lab
+  repo: VIKINGS-MASTER-PDF
+  releaseType: release
 
 npmRebuild: true

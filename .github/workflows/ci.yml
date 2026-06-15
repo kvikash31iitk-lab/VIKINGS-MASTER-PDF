@@ -62,6 +62,9 @@ jobs:
     name: Package Windows installer
     runs-on: windows-latest
     needs: quality
+    # Allow the built-in token to create/upload GitHub Releases for auto-update.
+    permissions:
+      contents: write
     # Tag releases, manual dispatch, or any push whose message opts in.
     if: >-
       startsWith(github.ref, 'refs/tags/v') ||
@@ -74,7 +77,12 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci --no-audit --no-fund
-      - run: npm run package:win
+      # Builds the NSIS + portable exe AND publishes them (plus latest.yml and
+      # the .blockmap for differential updates) to a GitHub Release named after
+      # the package.json version. The installed app reads this feed.
+      - run: npm run release:win
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - uses: actions/upload-artifact@v4
         with:
           name: windows-installer

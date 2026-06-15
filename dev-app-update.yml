@@ -1,5 +1,7 @@
-# Used by electron-updater when running in development mode.
-provider: generic
-url: https://updates.vikingstech.example/master-pdf
-channel: latest
+# Used by electron-updater only in development mode (packaged builds embed their
+# own app-update.yml from electron-builder.yml's publish block). Update checks
+# are skipped in dev, so this is here purely for parity.
+provider: github
+owner: kvikash31iitk-lab
+repo: VIKINGS-MASTER-PDF
 updaterCacheDirName: vikings-master-pdf-updater

@@ -1,7 +1,7 @@
 {
   "name": "vikings-master-pdf",
   "productName": "Vikings Master PDF",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Professional PDF Editing Without Limits — enterprise-grade PDF workstation by Vikings Technologies",
   "main": "./out/main/index.js",
   "author": {
@@ -32,7 +32,10 @@
     "package:win": "electron-vite build && electron-builder --win",
     "package:mac": "electron-vite build && electron-builder --mac",
     "package:linux": "electron-vite build && electron-builder --linux",
-    "release": "electron-vite build && electron-builder --publish always"
+    "release": "electron-vite build && electron-builder --publish always",
+    "release:win": "electron-vite build && electron-builder --win --publish always",
+    "release:mac": "electron-vite build && electron-builder --mac --publish always",
+    "release:linux": "electron-vite build && electron-builder --linux --publish always"
   },
   "dependencies": {
     "better-sqlite3": "^11.5.0",

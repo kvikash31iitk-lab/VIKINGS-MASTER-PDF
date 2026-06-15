@@ -34,11 +34,24 @@ git push --follow-tags       # tag triggers packaging jobs
 npm run release              # build + electron-builder --publish always
 ```
 
-`electron-builder.yml` publishes to a **generic** update server
-(`https://updates.vikingstech.example/master-pdf`). Upload the artifacts plus
-the generated `latest.yml` (Windows) / `latest-linux.yml` / `latest-mac.yml`
-to that path — electron-updater clients poll it, then download deltas.
-Switching to GitHub Releases is a one-line provider change.
+`electron-builder.yml` publishes to **GitHub Releases**
+(`provider: github`, `owner: kvikash31iitk-lab`, `repo: VIKINGS-MASTER-PDF`).
+The CI `package-windows` job runs `npm run release:win` with
+`GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}` and `permissions: contents: write`, which
+builds the installer and uploads it — together with `latest.yml` and the
+`.blockmap` for differential downloads — to a Release named `v{version}` from
+`package.json`. The installed app reads that feed and updates itself.
+
+**Shipping an update:** bump `version` in `package.json`, then push a commit
+whose message contains `[build-installers]` (or run the workflow manually). CI
+publishes the new Release; installed apps download it in the background and offer
+a one-click restart (and install on next quit otherwise). Each version must be
+unique — electron-builder will not overwrite an existing Release's assets.
+
+> First install is still manual (from the Release page). Auto-update only works
+> from a build that already has the GitHub feed baked in (v1.0.1 and later).
+> If publishing fails with 403, enable **Settings ▸ Actions ▸ General ▸
+> Workflow permissions ▸ Read and write permissions** for the repo.
 
 ### Code signing
 
