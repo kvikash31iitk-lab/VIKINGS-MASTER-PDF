@@ -22,12 +22,14 @@ const CSP = [
 
 export function hardenSessions(): void {
   app.on('web-contents-created', (_event, contents) => {
-    // Block all navigation away from the application shell.
+    // Block ALL navigation away from the application shell. The initial
+    // renderer load happens via loadFile/loadURL (which do not emit
+    // will-navigate), so the only legitimate navigation is the dev server's
+    // HMR. Notably we must NOT allow file:// here — otherwise a file dropped
+    // onto the window would navigate the whole app to that raw file.
     contents.on('will-navigate', (event, url) => {
-      const allowed =
-        url.startsWith('file://') ||
-        (process.env.ELECTRON_RENDERER_URL !== undefined &&
-          url.startsWith(process.env.ELECTRON_RENDERER_URL));
+      const devUrl = process.env.ELECTRON_RENDERER_URL;
+      const allowed = devUrl !== undefined && url.startsWith(devUrl);
       if (!allowed) event.preventDefault();
     });
     contents.on('will-attach-webview', (event) => event.preventDefault());

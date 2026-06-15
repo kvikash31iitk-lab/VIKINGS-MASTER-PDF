@@ -11,13 +11,15 @@ import { StatusBar } from './components/statusbar/StatusBar';
 import { DialogHost } from './components/dialogs/DialogHost';
 import { CommandPalette } from './components/common/CommandPalette';
 import { ToastHost } from './components/common/ToastHost';
+import { FileDropZone } from './components/common/FileDropZone';
 import { useAppStore } from './stores/app-store';
 import { useDocumentsStore, useActiveDoc } from './stores/documents-store';
 import { useSettingsStore } from './stores/settings-store';
-import { useUpdateStore, useBatchStore, useDialogStore, toast } from './stores/ui-stores';
+import { useUpdateStore, useBatchStore, toast } from './stores/ui-stores';
 import { registerBuiltInCommands } from './modules/register-commands';
 import { installKeyboardShortcuts } from './services/command-registry';
 import { documentService } from './services/document-service';
+import { openFilePath } from './services/file-open';
 import { pluginRuntime } from './plugins/plugin-runtime';
 import { ipc, rlog } from './services/ipc';
 import { cx } from './utils';
@@ -46,15 +48,9 @@ export default function App() {
       useAppStore.getState().setTheme(settings.appearance.theme);
       document.documentElement.setAttribute('data-animations', settings.appearance.animationsEnabled ? 'on' : 'off');
 
-      // OS file associations / second instance.
+      // OS file associations / second instance — same path as drag-and-drop.
       ipc.files.onOpenedExternally((path) => {
-        void documentService.openFromPath(path).catch((e: Error) => {
-          if (e.name === 'PasswordRequiredError') {
-            useDialogStore.getState().show('password-prompt', { path });
-          } else {
-            toast.error('Could not open file', e.message);
-          }
-        });
+        void openFilePath(path);
       });
 
       // Updates → status bar.
@@ -113,6 +109,7 @@ export default function App() {
       <DialogHost />
       <CommandPalette />
       <ToastHost />
+      <FileDropZone />
     </div>
   );
 }

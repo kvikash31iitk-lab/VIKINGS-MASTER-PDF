@@ -10,6 +10,7 @@ declare module '*?url' {
 interface VikingsBridge {
   invoke<T = unknown>(channel: string, ...args: unknown[]): Promise<T>;
   on(channel: string, listener: (payload: unknown) => void): () => void;
+  getPathForFile(file: File): string;
   platform: string;
 }
 

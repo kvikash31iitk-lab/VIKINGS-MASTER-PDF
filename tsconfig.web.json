@@ -31,7 +31,8 @@
     "src/core/**/*",
     "src/tests/stores/**/*",
     "src/tests/renderer/**/*",
-    "src/tests/setup/**/*"
+    "src/tests/setup/**/*",
+    "src/tests/helpers/**/*"
   ],
   "exclude": ["src/core/node/**/*"]
 }
