@@ -18,6 +18,10 @@ function RibbonButton({ item }: { item: RibbonItem }) {
   // Re-render on doc changes so `when` clauses re-evaluate.
   useDocumentsStore((s) => s.activeId);
   useDocumentsStore((s) => s.docs.length);
+  // Re-render on annotation-draft history changes so Undo/Redo (and other
+  // draft-dependent commands) reflect their enabled state immediately.
+  useToolStore((s) => s.draftPast);
+  useToolStore((s) => s.draftFuture);
 
   const enabled = item.commandId ? commands.isEnabled(item.commandId) : true;
   const pressed = item.kind === 'tool' && item.toolId === activeTool;

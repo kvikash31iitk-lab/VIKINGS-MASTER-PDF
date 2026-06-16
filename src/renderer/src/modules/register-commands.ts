@@ -160,19 +160,32 @@ export function registerBuiltInCommands(): void {
     },
 
     // ───────────── Edit / history ─────────────
+    // Undo/redo covers both uncommitted annotation drafts (handled in the tool
+    // store) and committed PDF byte operations. Drafts are the most recent
+    // edits, so they are undone first; once exhausted we fall back to byte ops.
     {
       id: 'edit.undo',
       label: 'Undo',
       shortcut: 'Ctrl+Z',
-      when: (ctx) => ctx.hasDocument && documentService.canUndo(ctx.docId ?? ''),
-      run: () => documentService.undo(requireActive())
+      when: (ctx) =>
+        ctx.hasDocument &&
+        (useToolStore.getState().canUndoDrafts(ctx.docId ?? '') || documentService.canUndo(ctx.docId ?? '')),
+      run: () => {
+        const id = requireActive();
+        if (!useToolStore.getState().undoDrafts(id)) void documentService.undo(id);
+      }
     },
     {
       id: 'edit.redo',
       label: 'Redo',
       shortcut: 'Ctrl+Y',
-      when: (ctx) => ctx.hasDocument && documentService.canRedo(ctx.docId ?? ''),
-      run: () => documentService.redo(requireActive())
+      when: (ctx) =>
+        ctx.hasDocument &&
+        (useToolStore.getState().canRedoDrafts(ctx.docId ?? '') || documentService.canRedo(ctx.docId ?? '')),
+      run: () => {
+        const id = requireActive();
+        if (!useToolStore.getState().redoDrafts(id)) void documentService.redo(id);
+      }
     },
 
     // ───────────── View ─────────────

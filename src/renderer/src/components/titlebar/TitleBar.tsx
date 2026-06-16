@@ -1,19 +1,31 @@
 /** Frameless window title bar: app icon, Quick Access Toolbar, title, window controls. */
 import { useEffect } from 'react';
 import { useAppStore } from '../../stores/app-store';
-import { useActiveDoc } from '../../stores/documents-store';
+import { useActiveDoc, useDocumentsStore } from '../../stores/documents-store';
+import { useToolStore } from '../../stores/ui-stores';
 import { commands } from '../../services/command-registry';
 import { ipc } from '../../services/ipc';
 import { Icon } from '../common/Icon';
 import { cx } from '../../utils';
 
 function QatButton({ icon, label, commandId }: { icon: string; label: string; commandId: string }) {
+  // Re-evaluate the command's enabled state on document + draft-history changes
+  // so Undo/Redo/Save visibly light up the moment an action becomes available.
+  useDocumentsStore((s) => s.activeId);
+  useDocumentsStore((s) => s.docs.find((d) => d.id === s.activeId)?.dirty);
+  useToolStore((s) => s.draftPast);
+  useToolStore((s) => s.draftFuture);
+  const enabled = commands.isEnabled(commandId);
   return (
     <button
       onClick={() => void commands.execute(commandId)}
+      disabled={!enabled}
       title={label}
       aria-label={label}
-      className="vk-no-drag rounded p-1.5 text-app-text-muted hover:bg-app-surface-3 hover:text-app-text"
+      className={cx(
+        'vk-no-drag rounded p-1.5 text-app-text-muted hover:bg-app-surface-3 hover:text-app-text',
+        !enabled && 'opacity-40'
+      )}
     >
       <Icon name={icon} size={14} />
     </button>

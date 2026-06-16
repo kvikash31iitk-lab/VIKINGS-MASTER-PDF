@@ -172,6 +172,9 @@ export function AnnotationOverlay({
         patch.contents = obj.text ?? draft.contents;
         patch.lines = (obj.text ?? '').split('\n');
       }
+      // Nothing actually changed (e.g. a fixed markup object) → skip, so undo
+      // history isn't polluted with no-op entries.
+      if (Object.keys(patch).length === 0) return;
       useToolStore.getState().updateDraft(docId, link.draftId, patch);
     };
     canvas.on('object:modified', onModified);
@@ -319,11 +322,17 @@ export function AnnotationOverlay({
         case 'add-text':
           if (!tiny) {
             add({ ...base, kind: 'textbox', rect: { ...rect, h: Math.max(rect.h, fontSize * 2) }, fontSize, lines: ['Type here'], contents: 'Type here', color: tool === 'add-text' ? '#111111' : color });
+            // Switch to Select so the new box can be moved/edited by dragging it
+            // instead of the text tool drawing fresh duplicates on every drag.
+            useToolStore.getState().setTool('select');
+            useToolStore.getState().selectDraft(base.id);
           }
           break;
         case 'callout':
           if (!tiny) {
             add({ ...base, kind: 'callout', rect, fontSize, lines: ['Callout'], contents: 'Callout', calloutTarget: { x: rect.x - 40, y: rect.y + rect.h + 30 } });
+            useToolStore.getState().setTool('select');
+            useToolStore.getState().selectDraft(base.id);
           }
           break;
         case 'redact-area':

@@ -14,6 +14,14 @@ import { FormDesignerLayer } from './FormDesignerLayer';
 import type { PageLayout } from '../../types';
 import { EMPTY } from '../../utils';
 
+// A glyph's ink sits mostly above the baseline: its ascent is roughly this
+// fraction of the font height. Placing each text-layer span this far above the
+// baseline (rather than a full font height) lines the invisible selectable
+// glyphs up with the rasterised page, so selection rects — and the
+// highlight/underline/strikeout marks derived from them — cover the real text
+// instead of floating above it.
+const GLYPH_ASCENT_RATIO = 0.8;
+
 export const PageView = memo(function PageView({
   docId,
   layout,
@@ -117,7 +125,7 @@ export const PageView = memo(function PageView({
             key={i}
             style={{
               left: item.x * scale,
-              top: (layout.ptHeight - item.y - item.height) * scale,
+              top: (layout.ptHeight - item.y - item.height * GLYPH_ASCENT_RATIO) * scale,
               fontSize: Math.max(1, item.height * scale),
               fontFamily: 'sans-serif'
             }}

@@ -93,6 +93,9 @@ interface ToolState {
   author: string;
   /** Drafts not yet committed to the PDF, keyed by doc id. */
   drafts: Record<string, AnnotationDraft[]>;
+  /** Undo/redo snapshots of the draft list, keyed by doc id. */
+  draftPast: Record<string, AnnotationDraft[][]>;
+  draftFuture: Record<string, AnnotationDraft[][]>;
   selectedDraftId: string | null;
 
   setTool(tool: ToolId): void;
@@ -103,9 +106,26 @@ interface ToolState {
   removeDraft(docId: string, id: string): void;
   clearDrafts(docId: string): void;
   selectDraft(id: string | null): void;
+  undoDrafts(docId: string): boolean;
+  redoDrafts(docId: string): boolean;
+  canUndoDrafts(docId: string): boolean;
+  canRedoDrafts(docId: string): boolean;
 }
 
-export const useToolStore = create<ToolState>((set) => ({
+const DRAFT_HISTORY_LIMIT = 80;
+
+/** Pushes a draft snapshot onto a per-doc history stack, capped at the limit. */
+function pushDraftSnapshot(
+  stack: Record<string, AnnotationDraft[][]>,
+  docId: string,
+  snapshot: AnnotationDraft[]
+): Record<string, AnnotationDraft[][]> {
+  const next = [...(stack[docId] ?? []), snapshot];
+  if (next.length > DRAFT_HISTORY_LIMIT) next.shift();
+  return { ...stack, [docId]: next };
+}
+
+export const useToolStore = create<ToolState>((set, get) => ({
   tool: 'hand',
   color: '#d13438',
   fillColor: null,
@@ -114,26 +134,81 @@ export const useToolStore = create<ToolState>((set) => ({
   fontSize: 12,
   author: 'You',
   drafts: {},
+  draftPast: {},
+  draftFuture: {},
   selectedDraftId: null,
 
   setTool: (tool) => set({ tool }),
   setStyle: (patch) => set(patch),
   setAuthor: (author) => set({ author }),
+  // Every draft mutation records the prior list so it can be undone, and clears
+  // the redo stack (a new branch of history).
   addDraft: (docId, draft) =>
-    set((s) => ({ drafts: { ...s.drafts, [docId]: [...(s.drafts[docId] ?? []), draft] } })),
+    set((s) => {
+      const prev = s.drafts[docId] ?? [];
+      return {
+        drafts: { ...s.drafts, [docId]: [...prev, draft] },
+        draftPast: pushDraftSnapshot(s.draftPast, docId, prev),
+        draftFuture: { ...s.draftFuture, [docId]: [] }
+      };
+    }),
   updateDraft: (docId, id, patch) =>
-    set((s) => ({
-      drafts: {
-        ...s.drafts,
-        [docId]: (s.drafts[docId] ?? []).map((d) => (d.id === id ? { ...d, ...patch } : d))
-      }
-    })),
+    set((s) => {
+      const prev = s.drafts[docId] ?? [];
+      return {
+        drafts: { ...s.drafts, [docId]: prev.map((d) => (d.id === id ? { ...d, ...patch } : d)) },
+        draftPast: pushDraftSnapshot(s.draftPast, docId, prev),
+        draftFuture: { ...s.draftFuture, [docId]: [] }
+      };
+    }),
   removeDraft: (docId, id) =>
+    set((s) => {
+      const prev = s.drafts[docId] ?? [];
+      return {
+        drafts: { ...s.drafts, [docId]: prev.filter((d) => d.id !== id) },
+        draftPast: pushDraftSnapshot(s.draftPast, docId, prev),
+        draftFuture: { ...s.draftFuture, [docId]: [] }
+      };
+    }),
+  // Clearing drafts (e.g. after committing them to the PDF) also resets the
+  // draft history: the cleared annotations now live in the byte-level history.
+  clearDrafts: (docId) =>
     set((s) => ({
-      drafts: { ...s.drafts, [docId]: (s.drafts[docId] ?? []).filter((d) => d.id !== id) }
+      drafts: { ...s.drafts, [docId]: [] },
+      draftPast: { ...s.draftPast, [docId]: [] },
+      draftFuture: { ...s.draftFuture, [docId]: [] }
     })),
-  clearDrafts: (docId) => set((s) => ({ drafts: { ...s.drafts, [docId]: [] } })),
-  selectDraft: (id) => set({ selectedDraftId: id })
+  selectDraft: (id) => set({ selectedDraftId: id }),
+  undoDrafts: (docId) => {
+    const s = get();
+    const past = s.draftPast[docId] ?? [];
+    if (past.length === 0) return false;
+    const previous = past[past.length - 1]!;
+    const current = s.drafts[docId] ?? [];
+    set({
+      drafts: { ...s.drafts, [docId]: previous },
+      draftPast: { ...s.draftPast, [docId]: past.slice(0, -1) },
+      draftFuture: { ...s.draftFuture, [docId]: [...(s.draftFuture[docId] ?? []), current] },
+      selectedDraftId: null
+    });
+    return true;
+  },
+  redoDrafts: (docId) => {
+    const s = get();
+    const future = s.draftFuture[docId] ?? [];
+    if (future.length === 0) return false;
+    const next = future[future.length - 1]!;
+    const current = s.drafts[docId] ?? [];
+    set({
+      drafts: { ...s.drafts, [docId]: next },
+      draftFuture: { ...s.draftFuture, [docId]: future.slice(0, -1) },
+      draftPast: { ...s.draftPast, [docId]: [...(s.draftPast[docId] ?? []), current] },
+      selectedDraftId: null
+    });
+    return true;
+  },
+  canUndoDrafts: (docId) => (get().draftPast[docId]?.length ?? 0) > 0,
+  canRedoDrafts: (docId) => (get().draftFuture[docId]?.length ?? 0) > 0
 }));
 
 // ───────────────────────── Comments panel ─────────────────────────

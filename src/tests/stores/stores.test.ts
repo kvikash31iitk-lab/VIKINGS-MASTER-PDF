@@ -19,7 +19,7 @@ const meta = (id: string): OpenDocumentMeta => ({
 beforeEach(() => {
   useDocumentsStore.setState({ docs: [], activeId: null, workspaceMode: 'view', selectedPages: [] });
   useDialogStore.setState({ open: null, payload: undefined });
-  useToolStore.setState({ drafts: {}, tool: 'hand', selectedDraftId: null });
+  useToolStore.setState({ drafts: {}, draftPast: {}, draftFuture: {}, tool: 'hand', selectedDraftId: null });
   useToastStore.setState({ toasts: [] });
 });
 
@@ -109,6 +109,56 @@ describe('tool store drafts', () => {
     s.clearDrafts('doc1');
     expect(useToolStore.getState().drafts.doc1).toHaveLength(0);
     expect(useToolStore.getState().drafts.doc2).toHaveLength(1);
+  });
+
+  it('undoes and redoes draft mutations', () => {
+    const s = useToolStore.getState();
+    expect(s.canUndoDrafts('doc1')).toBe(false);
+    s.addDraft('doc1', draft);
+    s.addDraft('doc1', { ...draft, id: 'd2' });
+    expect(useToolStore.getState().drafts.doc1).toHaveLength(2);
+    expect(useToolStore.getState().canUndoDrafts('doc1')).toBe(true);
+
+    // Undo removes the most recent draft.
+    expect(useToolStore.getState().undoDrafts('doc1')).toBe(true);
+    expect(useToolStore.getState().drafts.doc1).toHaveLength(1);
+    expect(useToolStore.getState().drafts.doc1![0]!.id).toBe('d1');
+    expect(useToolStore.getState().canRedoDrafts('doc1')).toBe(true);
+
+    // Redo brings it back.
+    expect(useToolStore.getState().redoDrafts('doc1')).toBe(true);
+    expect(useToolStore.getState().drafts.doc1).toHaveLength(2);
+  });
+
+  it('undoes a move (updateDraft) and reports nothing left to undo', () => {
+    const s = useToolStore.getState();
+    s.addDraft('doc1', draft);
+    s.updateDraft('doc1', 'd1', { rect: { x: 99, y: 99, w: 50, h: 30 } });
+    expect(useToolStore.getState().drafts.doc1![0]!.rect!.x).toBe(99);
+
+    useToolStore.getState().undoDrafts('doc1'); // undo the move
+    expect(useToolStore.getState().drafts.doc1![0]!.rect!.x).toBe(10);
+    useToolStore.getState().undoDrafts('doc1'); // undo the add
+    expect(useToolStore.getState().drafts.doc1).toHaveLength(0);
+    expect(useToolStore.getState().undoDrafts('doc1')).toBe(false);
+  });
+
+  it('a new mutation after undo discards the redo stack', () => {
+    const s = useToolStore.getState();
+    s.addDraft('doc1', draft);
+    s.addDraft('doc1', { ...draft, id: 'd2' });
+    useToolStore.getState().undoDrafts('doc1');
+    expect(useToolStore.getState().canRedoDrafts('doc1')).toBe(true);
+    useToolStore.getState().addDraft('doc1', { ...draft, id: 'd3' });
+    expect(useToolStore.getState().canRedoDrafts('doc1')).toBe(false);
+  });
+
+  it('clearing drafts also resets undo/redo history', () => {
+    const s = useToolStore.getState();
+    s.addDraft('doc1', draft);
+    s.clearDrafts('doc1');
+    expect(useToolStore.getState().canUndoDrafts('doc1')).toBe(false);
+    expect(useToolStore.getState().canRedoDrafts('doc1')).toBe(false);
   });
 });
 
