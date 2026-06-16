@@ -6,7 +6,7 @@ import { findPatternMatches, findSearchMatches, applyRedactions } from '@core/pd
 import type { CensoredPage } from '@core/pdf/redaction';
 import { documentService } from './document-service';
 import { pageRenderService } from './page-render-service';
-import { useRedactionStore, toast } from '../stores/ui-stores';
+import { useRedactionStore, useToastStore, toast } from '../stores/ui-stores';
 import { useSettingsStore } from '../stores/settings-store';
 import { ipc } from './ipc';
 import { uid } from '../utils';
@@ -130,7 +130,6 @@ export const redactionService = {
       });
       toast.success('Redactions applied', `${marks.length} region(s) permanently removed on ${byPage.size} page(s)`);
     } finally {
-      const { useToastStore } = await import('../stores/ui-stores');
       useToastStore.getState().dismiss(progressId);
     }
   }

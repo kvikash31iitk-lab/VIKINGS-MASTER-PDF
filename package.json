@@ -1,7 +1,7 @@
 {
   "name": "vikings-master-pdf",
   "productName": "Vikings Master PDF",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Professional PDF Editing Without Limits — enterprise-grade PDF workstation by Vikings Technologies",
   "main": "./out/main/index.js",
   "author": {

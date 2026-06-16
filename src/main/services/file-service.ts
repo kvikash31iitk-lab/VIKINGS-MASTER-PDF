@@ -24,6 +24,9 @@ export class FileService {
   }
 
   async showSaveDialog(req: SaveDialogRequest): Promise<string | null> {
+    // Test seam: when set, skip the native dialog (used by automated export
+    // tests; never set in normal use).
+    if (process.env.VK_TEST_SAVE_PATH) return process.env.VK_TEST_SAVE_PATH;
     const win = BrowserWindow.getFocusedWindow() ?? undefined;
     const result = await dialog.showSaveDialog(win as BrowserWindow, {
       title: req.title ?? 'Save',

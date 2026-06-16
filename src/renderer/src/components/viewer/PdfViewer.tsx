@@ -28,6 +28,12 @@ export function PdfViewer({ doc }: { doc: OpenDocumentMeta }) {
   const [sizes, setSizes] = useState<PageSizePt[]>([]);
   const [viewport, setViewport] = useState({ width: 0, height: 0, scrollTop: 0 });
   const scrollLock = useRef<{ target: number | null }>({ target: null });
+  // Page number we ourselves derived from the user's scroll position. The
+  // "scroll to page" effect skips these so it never yanks the view while the
+  // user is scrolling; it only acts on external navigation (thumbnail, go-to,
+  // search).
+  const scrollOriginPage = useRef(0);
+  const scrollRaf = useRef(0);
   const [renderZoom, setRenderZoom] = useState(doc.view.zoom);
   const [renderNonce, setRenderNonce] = useState(0);
 
@@ -174,45 +180,60 @@ export function PdfViewer({ doc }: { doc: OpenDocumentMeta }) {
     return layouts.filter((l) => l.top + l.height >= from && l.top <= to);
   }, [layouts, viewport.scrollTop, viewport.height]);
 
-  // ── Scroll → current page ──
+  // ── Scroll → current page (rAF-throttled: one update per frame) ──
   const onScroll = useCallback(() => {
-    const el = containerRef.current;
-    if (!el) return;
-    setViewport((v) => ({ ...v, scrollTop: el.scrollTop }));
-    if (scrollLock.current.target !== null) {
-      if (Math.abs(el.scrollTop - scrollLock.current.target) < 4) scrollLock.current.target = null;
-      return;
-    }
-    const center = el.scrollTop + el.clientHeight / 2;
-    let best = doc.view.page;
-    let bestDist = Infinity;
-    for (const l of layouts) {
-      const dist = Math.abs(l.top + l.height / 2 - center);
-      if (dist < bestDist) {
-        bestDist = dist;
-        best = l.pageIndex + 1;
+    if (scrollRaf.current) return;
+    scrollRaf.current = requestAnimationFrame(() => {
+      scrollRaf.current = 0;
+      const el = containerRef.current;
+      if (!el) return;
+      const top = el.scrollTop;
+      setViewport((v) => (v.scrollTop === top ? v : { ...v, scrollTop: top }));
+
+      // While a programmatic scroll is settling, don't recompute the page.
+      if (scrollLock.current.target !== null) {
+        if (Math.abs(top - scrollLock.current.target) < 4) scrollLock.current.target = null;
+        return;
       }
-    }
-    if (best !== doc.view.page) {
-      updateView(doc.id, { page: best });
-      eventBus.emit('page:changed', { docId: doc.id, page: best });
-    }
+      const center = top + el.clientHeight / 2;
+      let best = doc.view.page;
+      let bestDist = Infinity;
+      for (const l of layouts) {
+        const dist = Math.abs(l.top + l.height / 2 - center);
+        if (dist < bestDist) {
+          bestDist = dist;
+          best = l.pageIndex + 1;
+        }
+      }
+      if (best !== doc.view.page) {
+        scrollOriginPage.current = best; // mark as scroll-derived
+        updateView(doc.id, { page: best });
+        eventBus.emit('page:changed', { docId: doc.id, page: best });
+      }
+    });
   }, [layouts, doc.id, doc.view.page, updateView]);
 
+  useEffect(
+    () => () => {
+      if (scrollRaf.current) cancelAnimationFrame(scrollRaf.current);
+    },
+    []
+  );
+
   // ── External page change → scroll there ──
+  // Only acts on navigation that did NOT come from scrolling, so pages taller
+  // than the viewport no longer snap to their top mid-scroll.
   const lastScrolledPage = useRef(0);
   useEffect(() => {
     const el = containerRef.current;
     if (!el || layouts.length === 0) return;
     if (doc.view.viewMode === 'single') return; // single mode re-layouts instead
+    if (doc.view.page === scrollOriginPage.current) return; // user-scroll origin
+    if (doc.view.page === lastScrolledPage.current) return; // already positioned
     const layout = layouts.find((l) => l.pageIndex === doc.view.page - 1);
     if (!layout) return;
-    const inView =
-      layout.top >= el.scrollTop - 2 && layout.top + layout.height <= el.scrollTop + el.clientHeight + 2;
-    if (lastScrolledPage.current !== doc.view.page && !inView) {
-      scrollLock.current.target = Math.max(0, layout.top - GAP);
-      el.scrollTo({ top: scrollLock.current.target });
-    }
+    scrollLock.current.target = Math.max(0, layout.top - GAP);
+    el.scrollTo({ top: scrollLock.current.target });
     lastScrolledPage.current = doc.view.page;
   }, [doc.view.page, layouts, doc.view.viewMode]);
 

@@ -13,8 +13,8 @@ import { buildHtml } from '@core/convert/html-export';
 import { textToRtf } from '@core/convert/rtf';
 import { documentService } from './document-service';
 import { pageRenderService } from './page-render-service';
-import { ipc } from './ipc';
-import { toast } from '../stores/ui-stores';
+import { ipc, rlog } from './ipc';
+import { toast, useToastStore } from '../stores/ui-stores';
 import { useDocumentsStore } from '../stores/documents-store';
 import { resolvePageSelection } from '@core/pdf/utils';
 
@@ -157,11 +157,13 @@ export const exportService = {
       toast.success('Export complete', target);
       void ipc.log.audit({ event: 'doc.export', detail: { format: options.format, target } });
       return true;
+    } catch (e) {
+      rlog.error('export', `Export to ${options.format} failed`, { error: (e as Error).message });
+      toast.error('Export failed', (e as Error).message);
+      return false;
     } finally {
-      const { dismiss } = await import('../stores/ui-stores').then((m) => ({
-        dismiss: m.useToastStore.getState().dismiss
-      }));
-      dismiss(progressToast);
+      // Always clear the progress spinner — even on error.
+      useToastStore.getState().dismiss(progressToast);
     }
   }
 };
