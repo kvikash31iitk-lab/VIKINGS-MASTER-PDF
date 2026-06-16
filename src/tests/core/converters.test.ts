@@ -112,6 +112,23 @@ describe('docx export', () => {
     expect(docXml).toContain('<w:tbl>');
   });
 
+  it('hybrid mode keeps editable text and embeds page images at position', async () => {
+    const page = reconstructPage(0, 595, 842, [
+      { str: 'Heading One', x: 72, y: 760, width: 150, height: 24 },
+      { str: 'Normal paragraph text.', x: 72, y: 700, width: 220, height: 12 }
+    ]);
+    const doc = buildDocxDocument([page], 'Hybrid', [
+      [{ pngBytes: TINY_PNG, topYPt: 730, widthPt: 60, heightPt: 60 }]
+    ]);
+    const buffer = await Packer.toBuffer(doc);
+    const zip = await JSZip.loadAsync(buffer);
+    const docXml = await zip.file('word/document.xml')!.async('string');
+    expect(docXml).toContain('Heading One'); // text preserved
+    expect(docXml).toContain('<w:drawing>'); // image embedded
+    const media = Object.keys(zip.files).filter((f) => f.startsWith('word/media/'));
+    expect(media.length).toBeGreaterThanOrEqual(1);
+  });
+
   it('buildImageDocx embeds one full-page picture per page', async () => {
     const doc = buildImageDocx(
       [

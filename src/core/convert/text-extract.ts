@@ -217,9 +217,9 @@ export function pageToPlainText(page: ReconstructedPage): string {
 // ───────────────────────── Ordered document blocks (PDF→Word/HTML) ─────────────────────────
 
 export type DocBlock =
-  | { kind: 'heading'; text: string; level: 1 | 2 }
-  | { kind: 'paragraph'; text: string }
-  | { kind: 'table'; rows: string[][] };
+  | { kind: 'heading'; text: string; level: 1 | 2; y: number }
+  | { kind: 'paragraph'; text: string; y: number }
+  | { kind: 'table'; rows: string[][]; y: number };
 
 /**
  * Converts a page's lines into an ordered sequence of headings, paragraphs and
@@ -238,6 +238,8 @@ export function linesToBlocks(lines: TextLine[]): DocBlock[] {
   let i = 0;
   while (i < sorted.length) {
     const line = sorted[i]!;
+
+    const blockY = line.y;
 
     // ── Table run: starts on a tab-bearing line ──
     if (line.text.includes('\t')) {
@@ -261,7 +263,8 @@ export function linesToBlocks(lines: TextLine[]): DocBlock[] {
       if (rows.length >= 2 && cols >= 2) {
         blocks.push({
           kind: 'table',
-          rows: rows.map((r) => [...r, ...Array(cols - r.length).fill('')])
+          rows: rows.map((r) => [...r, ...Array(cols - r.length).fill('')]),
+          y: blockY
         });
         i = j;
         continue;
@@ -271,7 +274,12 @@ export function linesToBlocks(lines: TextLine[]): DocBlock[] {
 
     // ── Heading: a short line noticeably larger than body text ──
     if (line.fontSize > headingThreshold && line.text.replace(/\t/g, ' ').trim().length < 160) {
-      blocks.push({ kind: 'heading', text: line.text.replace(/\t/g, ' ').trim(), level: line.fontSize > body * 1.7 ? 1 : 2 });
+      blocks.push({
+        kind: 'heading',
+        text: line.text.replace(/\t/g, ' ').trim(),
+        level: line.fontSize > body * 1.7 ? 1 : 2,
+        y: blockY
+      });
       i += 1;
       continue;
     }
@@ -291,7 +299,7 @@ export function linesToBlocks(lines: TextLine[]): DocBlock[] {
       j++;
     }
     const clean = text.replace(/\s+/g, ' ').trim();
-    if (clean) blocks.push({ kind: 'paragraph', text: clean });
+    if (clean) blocks.push({ kind: 'paragraph', text: clean, y: blockY });
     i = j;
   }
   return blocks;

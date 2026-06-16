@@ -65,7 +65,43 @@ export function buildImageDocx(pages: DocxPageImage[], title?: string): Document
   });
 }
 
-export function buildDocxDocument(pages: ReconstructedPage[], title?: string): Document {
+/** A raster image extracted from a PDF page, placed by its top edge (PDF y-up). */
+export interface PlacedDocImage {
+  pngBytes: Uint8Array;
+  topYPt: number;
+  widthPt: number;
+  heightPt: number;
+}
+
+const CONTENT_WIDTH_PT = 451; // A4 minus 1" margins — cap image display width
+
+function imageParagraph(img: PlacedDocImage): DocxParagraph {
+  const scale = img.widthPt > CONTENT_WIDTH_PT ? CONTENT_WIDTH_PT / img.widthPt : 1;
+  return new DocxParagraph({
+    spacing: { before: 60, after: 60 },
+    children: [
+      new ImageRun({
+        type: 'png',
+        data: img.pngBytes,
+        transformation: {
+          width: Math.round(img.widthPt * scale * PT_TO_PX),
+          height: Math.round(img.heightPt * scale * PT_TO_PX)
+        }
+      })
+    ]
+  });
+}
+
+/**
+ * Hybrid PDF→Word: editable text/tables/headings, with the page's embedded
+ * raster images interleaved at their vertical position. `imagesByPage[i]`
+ * holds the images extracted from page `i`.
+ */
+export function buildDocxDocument(
+  pages: ReconstructedPage[],
+  title?: string,
+  imagesByPage?: PlacedDocImage[][]
+): Document {
   const children: Array<DocxParagraph | Table> = [];
 
   pages.forEach((page, pageIdx) => {
@@ -73,25 +109,32 @@ export function buildDocxDocument(pages: ReconstructedPage[], title?: string): D
       children.push(new DocxParagraph({ children: [new PageBreak()] }));
     }
 
+    // Merge text blocks and images into one top-to-bottom ordered stream.
+    const ordered: Array<{ y: number; el: DocxParagraph | Table }> = [];
     for (const block of linesToBlocks(page.lines)) {
       if (block.kind === 'table') {
-        children.push(buildTable({ rows: block.rows }));
+        ordered.push({ y: block.y, el: buildTable({ rows: block.rows }) });
       } else if (block.kind === 'heading') {
-        children.push(
-          new DocxParagraph({
+        ordered.push({
+          y: block.y,
+          el: new DocxParagraph({
             heading: block.level === 1 ? HeadingLevel.HEADING_1 : HeadingLevel.HEADING_2,
             children: [new TextRun({ text: block.text, bold: true })]
           })
-        );
+        });
       } else {
-        children.push(
-          new DocxParagraph({
-            children: [new TextRun({ text: block.text })],
-            spacing: { after: 120 }
-          })
-        );
+        ordered.push({
+          y: block.y,
+          el: new DocxParagraph({ children: [new TextRun({ text: block.text })], spacing: { after: 120 } })
+        });
       }
     }
+    for (const img of imagesByPage?.[pageIdx] ?? []) {
+      ordered.push({ y: img.topYPt, el: imageParagraph(img) });
+    }
+
+    ordered.sort((a, b) => b.y - a.y); // top → bottom (PDF y-up)
+    for (const item of ordered) children.push(item.el);
   });
 
   return new Document({

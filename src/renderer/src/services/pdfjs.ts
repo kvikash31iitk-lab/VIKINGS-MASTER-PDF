@@ -114,4 +114,5 @@ export async function extractPageText(page: PDFPageProxy): Promise<string> {
 }
 
 export { pdfjs };
+export const OPS = pdfjs.OPS;
 export type { PDFDocumentProxy, PDFPageProxy };

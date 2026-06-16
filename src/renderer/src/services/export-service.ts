@@ -5,7 +5,7 @@
 import { Packer } from 'docx';
 import { reconstructPage, pageToPlainText, detectTables } from '@core/convert/text-extract';
 import type { ReconstructedPage } from '@core/convert/text-extract';
-import { buildImageDocx } from '@core/convert/docx-export';
+import { buildDocxDocument } from '@core/convert/docx-export';
 import { buildXlsx } from '@core/convert/xlsx-writer';
 import { buildPptx } from '@core/convert/pptx-writer';
 import { encodeTiff, type TiffPage } from '@core/convert/tiff-encoder';
@@ -13,11 +13,11 @@ import { buildHtml } from '@core/convert/html-export';
 import { textToRtf } from '@core/convert/rtf';
 import { documentService } from './document-service';
 import { pageRenderService } from './page-render-service';
+import { extractPageImages } from './pdf-image-extract';
 import { ipc, rlog } from './ipc';
 import { toast, useToastStore } from '../stores/ui-stores';
 import { useDocumentsStore } from '../stores/documents-store';
 import { resolvePageSelection } from '@core/pdf/utils';
-import { canvasToPngBytes } from '../utils';
 
 export type ExportFormat = 'docx' | 'xlsx' | 'pptx' | 'png' | 'jpg' | 'tiff' | 'html' | 'txt' | 'rtf';
 
@@ -78,18 +78,23 @@ export const exportService = {
     try {
       switch (options.format) {
         case 'docx': {
-          // Layout-faithful: embed each PDF page as a full-page image.
+          // Hybrid: editable text/tables/headings, with each page's embedded
+          // raster images placed at their original vertical position.
           const dpi = options.dpi ?? 150;
-          const pageImages = [];
+          const pages = await reconstructPages(docId, indices);
+          const imagesByPage = [];
           for (const i of indices) {
-            const render = await pageRenderService.renderAtDpi(docId, i, dpi);
-            pageImages.push({
-              pngBytes: await canvasToPngBytes(render.canvas),
-              widthPt: render.ptWidth,
-              heightPt: render.ptHeight
-            });
+            const placed = await extractPageImages(docId, i, dpi);
+            imagesByPage.push(
+              placed.map((im) => ({
+                pngBytes: im.pngBytes,
+                topYPt: im.topYPt,
+                widthPt: im.widthPt,
+                heightPt: im.heightPt
+              }))
+            );
           }
-          const doc = buildImageDocx(pageImages, stem);
+          const doc = buildDocxDocument(pages, stem, imagesByPage);
           const blob = await Packer.toBlob(doc);
           await ipc.files.write(target, new Uint8Array(await blob.arrayBuffer()));
           break;
