@@ -42,6 +42,11 @@ export class TextIndex {
     return this.pages.find((p) => p.pageIndex === pageIndex)?.text;
   }
 
+  /** Drops a single page's cached text so it is re-extracted on next access. */
+  clearPage(pageIndex: number): void {
+    this.pages = this.pages.filter((p) => p.pageIndex !== pageIndex);
+  }
+
   get pageCount(): number {
     return this.pages.length;
   }

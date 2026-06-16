@@ -1,9 +1,9 @@
 /** Decoration dialogs: Watermark, Header & Footer, Bates numbering, Stamps. */
 import { useState } from 'react';
-import { applyWatermark, type WatermarkZone } from '@core/pdf/watermark';
-import { applyHeaderFooter, defaultHeaderFooterOptions } from '@core/pdf/header-footer';
+import type { WatermarkZone } from '@core/pdf/watermark';
+import { defaultHeaderFooterOptions } from '@core/pdf/header-footer';
 import { applyBatesNumbering, defaultBatesOptions, formatBates } from '@core/pdf/bates';
-import { applyStamp, BUILT_IN_STAMP_SPECS, type StampSpec } from '@core/pdf/stamps';
+import { BUILT_IN_STAMP_SPECS, type StampSpec } from '@core/pdf/stamps';
 import { documentService } from '../../services/document-service';
 import { useActiveDoc } from '../../stores/documents-store';
 import { useDialogStore, toast } from '../../stores/ui-stores';
@@ -49,12 +49,13 @@ export function WatermarkDialog() {
     setBusy(true);
     try {
       if (kind === 'text') {
-        await documentService.applyOperation(doc.id, 'Watermark', (bytes) =>
-          applyWatermark(bytes, {
+        await documentService.applyServerOp(doc.id, 'Watermark', {
+          kind: 'applyWatermark',
+          options: {
             kind: 'text', text, fontSize, color, opacity: opacity / 100, rotation, zone,
             tiled, behindContent: behind, ...(range ? { pageRange: range } : {})
-          })
-        );
+          }
+        });
       } else {
         if (!imagePath) {
           toast.warning('Choose an image first');
@@ -62,13 +63,14 @@ export function WatermarkDialog() {
         }
         const bytes = await ipc.files.read(imagePath);
         const format = /\.jpe?g$/i.test(imagePath) ? 'jpg' : 'png';
-        await documentService.applyOperation(doc.id, 'Watermark', (docBytes) =>
-          applyWatermark(docBytes, {
+        await documentService.applyServerOp(doc.id, 'Watermark', {
+          kind: 'applyWatermark',
+          options: {
             kind: 'image', imageBytes: bytes, imageFormat: format, scale: scale / 100,
             opacity: opacity / 100, rotation, zone, tiled, behindContent: behind,
             ...(range ? { pageRange: range } : {})
-          })
-        );
+          }
+        });
       }
       toast.success('Watermark applied');
       close();
@@ -134,16 +136,17 @@ export function HeaderFooterDialog() {
   const apply = async (): Promise<void> => {
     setBusy(true);
     try {
-      await documentService.applyOperation(doc.id, 'Header & footer', (bytes) =>
-        applyHeaderFooter(bytes, {
+      await documentService.applyServerOp(doc.id, 'Header & footer', {
+        kind: 'applyHeaderFooter',
+        options: {
           ...defaultHeaderFooterOptions(),
           ...Object.fromEntries(Object.entries(slots).filter(([, v]) => v)),
           fontSize,
           fileName: doc.title,
           startNumber,
           ...(range ? { pageRange: range } : {})
-        })
-      );
+        }
+      });
       toast.success('Header & footer applied');
       close();
     } finally {
@@ -246,14 +249,15 @@ export function StampDialog() {
       if (!runtime) return;
       const page = await runtime.pdf.getPage(doc.view.page);
       const vp = page.getViewport({ scale: 1 });
-      await documentService.applyOperation(doc.id, `Stamp ${spec.text}`, (bytes) =>
-        applyStamp(bytes, spec, {
-          pageIndex: doc.view.page - 1,
-          cx: vp.width / 2,
-          cy: vp.height / 2,
-          rotation: 12,
-          opacity: 0.85
-        })
+      await documentService.applyServerOp(
+        doc.id,
+        `Stamp ${spec.text}`,
+        {
+          kind: 'applyStamp',
+          spec,
+          placement: { pageIndex: doc.view.page - 1, cx: vp.width / 2, cy: vp.height / 2, rotation: 12, opacity: 0.85 }
+        },
+        [doc.view.page - 1]
       );
       toast.success('Stamp placed', `"${spec.text}" on page ${doc.view.page}`);
       close();

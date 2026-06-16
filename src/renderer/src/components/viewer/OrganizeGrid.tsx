@@ -5,7 +5,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { documentService } from '../../services/document-service';
 import { renderPageToCanvas } from '../../services/pdfjs';
-import { reorderPages } from '@core/pdf/page-ops';
 import { useDocumentsStore } from '../../stores/documents-store';
 import { commands } from '../../services/command-registry';
 import { Icon } from '../common/Icon';
@@ -115,7 +114,7 @@ export function OrganizeGrid({ doc }: { doc: OpenDocumentMeta }) {
     const order = Array.from({ length: doc.pageCount }, (_, i) => i);
     order.splice(from, 1);
     order.splice(target > from ? target - 1 : target, 0, from);
-    await documentService.applyOperation(doc.id, 'Reorder pages', (bytes) => reorderPages(bytes, order));
+    await documentService.applyServerOp(doc.id, 'Reorder pages', { kind: 'reorderPages', order });
   };
 
   const Action = ({ icon, label, commandId }: { icon: string; label: string; commandId: string }) => (

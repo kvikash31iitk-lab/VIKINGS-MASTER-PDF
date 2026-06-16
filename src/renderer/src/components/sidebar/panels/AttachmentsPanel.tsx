@@ -9,7 +9,6 @@ import { eventBus } from '@shared/event-bus';
 import { Icon } from '../../common/Icon';
 import { Button, EmptyState } from '../../common/controls';
 import { formatFileSize } from '../../../utils';
-import { removeAttachment } from '@core/pdf/attachments';
 
 export function AttachmentsPanel() {
   const doc = useActiveDoc();
@@ -55,7 +54,7 @@ export function AttachmentsPanel() {
   };
 
   const remove = async (name: string): Promise<void> => {
-    await documentService.applyOperation(doc.id, 'Remove attachment', (bytes) => removeAttachment(bytes, name));
+    await documentService.applyServerOp(doc.id, 'Remove attachment', { kind: 'removeAttachment', name });
   };
 
   return (

@@ -5,7 +5,7 @@ import { ocrService } from '../../services/ocr-service';
 import { documentService } from '../../services/document-service';
 import { compressPdf, COMPRESSION_PROFILES } from '@core/pdf/compression';
 import type { ImageCodec } from '@core/pdf/compression';
-import { convertToPdfA, validatePdfA, type PdfALevel, type PdfAValidationReport } from '@core/pdf/pdfa';
+import { validatePdfA, type PdfALevel, type PdfAValidationReport } from '@core/pdf/pdfa';
 import { imagesToPdf } from '@core/convert/image-to-pdf';
 import { textToPdf } from '@core/convert/text-to-pdf';
 import { rtfToText } from '@core/convert/rtf';
@@ -290,9 +290,10 @@ export function PdfaDialog() {
   const convert = async (): Promise<void> => {
     setBusy(true);
     try {
-      await documentService.applyOperation(doc.id, `Convert to PDF/${level}`, (bytes) =>
-        convertToPdfA(bytes, { level, title: doc.title })
-      );
+      await documentService.applyServerOp(doc.id, `Convert to PDF/${level}`, {
+        kind: 'convertToPdfA',
+        options: { level, title: doc.title }
+      });
       toast.success(`Converted toward PDF/${level}`, 'Run validation to review remaining issues');
       setReport(null);
     } finally {

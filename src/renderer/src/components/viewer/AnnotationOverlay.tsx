@@ -9,7 +9,6 @@ import { Canvas, Rect, Ellipse, Line, Polyline, Textbox } from 'fabric';
 import type { FabricObject, TPointerEventInfo, TPointerEvent , Point } from 'fabric';
 import { useToolStore, useRedactionStore, useDialogStore } from '../../stores/ui-stores';
 import { documentService } from '../../services/document-service';
-import { composePageContent } from '@core/pdf/content-composer';
 import { ipc } from '../../services/ipc';
 import { IMAGE_FILTERS } from '@shared/constants';
 import { uid, EMPTY } from '../../utils';
@@ -540,12 +539,18 @@ async function placeImage(
   const w = probe.width * scale;
   const h = probe.height * scale;
 
-  await documentService.applyOperation(docId, 'Place image', (docBytes) =>
-    composePageContent(docBytes, [
-      {
-        pageIndex,
-        op: { kind: 'image', x: at.x, y: ptHeight - at.y - h, width: w, height: h, bytes: data, format }
-      }
-    ])
+  await documentService.applyServerOp(
+    docId,
+    'Place image',
+    {
+      kind: 'composePageContent',
+      ops: [
+        {
+          pageIndex,
+          op: { kind: 'image', x: at.x, y: ptHeight - at.y - h, width: w, height: h, bytes: data, format }
+        }
+      ]
+    },
+    [pageIndex]
   );
 }

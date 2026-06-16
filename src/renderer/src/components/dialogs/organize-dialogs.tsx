@@ -1,6 +1,6 @@
 /** Organize dialogs: Split, Merge, Insert Pages, Crop, Go To Page, Compare, Batch. */
 import { useState } from 'react';
-import { splitByRanges, splitEveryN, insertPagesFromPdf, cropPages } from '@core/pdf/page-ops';
+import { splitByRanges, splitEveryN } from '@core/pdf/page-ops';
 import { compareDocumentText, buildComparisonReportPdf } from '@core/compare/compare';
 import { documentService } from '../../services/document-service';
 import { ipc } from '../../services/ipc';
@@ -141,9 +141,12 @@ export function InsertPagesDialog() {
     try {
       const source = await ipc.files.read(sourcePath);
       const at = position === 'end' ? doc.pageCount : position === 'before' ? doc.view.page - 1 : doc.view.page;
-      await documentService.applyOperation(doc.id, 'Insert pages', (bytes) =>
-        insertPagesFromPdf(bytes, source, at, range || undefined)
-      );
+      await documentService.applyServerOp(doc.id, 'Insert pages', {
+        kind: 'insertPagesFromPdf',
+        sourceBytes: source,
+        index: at,
+        sourceRange: range || undefined
+      });
       toast.success('Pages inserted');
       close();
     } finally {
@@ -198,7 +201,7 @@ export function CropDialog() {
         ? { x: payload.rect.x, y: vp.height - payload.rect.y - payload.rect.h, width: payload.rect.w, height: payload.rect.h }
         : { x: margin, y: margin, width: vp.width - margin * 2, height: vp.height - margin * 2 };
       const indices = applyAll ? Array.from({ length: doc.pageCount }, (_, i) => i) : [targetPage];
-      await documentService.applyOperation(doc.id, 'Crop pages', (bytes) => cropPages(bytes, indices, box));
+      await documentService.applyServerOp(doc.id, 'Crop pages', { kind: 'cropPages', indices, box }, indices);
       toast.success('Crop applied', applyAll ? 'All pages' : `Page ${targetPage + 1}`);
       close();
     } finally {

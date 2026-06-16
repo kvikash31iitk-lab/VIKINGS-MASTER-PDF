@@ -2,7 +2,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
   readBookmarks,
-  writeBookmarks,
   buildOutlineFromHeadings,
   bookmarksToJson,
   bookmarksFromJson,
@@ -110,7 +109,7 @@ export function BookmarksPanel() {
   if (!doc) return <EmptyState icon="bookmark" title="No document open" />;
 
   const persist = async (next: BookmarkNode[], label: string): Promise<void> => {
-    await documentService.applyOperation(doc.id, label, (bytes) => writeBookmarks(bytes, next));
+    await documentService.applyServerOp(doc.id, label, { kind: 'writeBookmarks', tree: next });
     setTree(next);
   };
 

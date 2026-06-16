@@ -4,14 +4,7 @@
  * document. Also handles replies, review states and deletion of existing
  * annotations.
  */
-import {
-  addAnnotations,
-  deleteAnnotationsByName,
-  addReply,
-  setReviewState,
-  type NewAnnotation,
-  type Quad
-} from '@core/pdf/annotation-writer';
+import type { NewAnnotation, Quad } from '@core/pdf/annotation-writer';
 import { documentService } from './document-service';
 import { useToolStore } from '../stores/ui-stores';
 import { uid } from '../utils';
@@ -144,30 +137,33 @@ export const annotationService = {
       if (spec) specs.push(spec);
     }
     if (specs.length === 0) return 0;
-    await documentService.applyOperation(docId, 'Add annotations', (bytes) =>
-      addAnnotations(bytes, specs)
-    );
+    const pages = [...new Set(specs.map((s) => s.pageIndex))];
+    await documentService.applyServerOp(docId, 'Add annotations', { kind: 'addAnnotations', annots: specs }, pages);
     useToolStore.getState().clearDrafts(docId);
     return specs.length;
   },
 
   async deleteByName(docId: string, names: string[]): Promise<void> {
-    await documentService.applyOperation(docId, 'Delete annotation', (bytes) =>
-      deleteAnnotationsByName(bytes, names)
-    );
+    await documentService.applyServerOp(docId, 'Delete annotation', { kind: 'deleteAnnotations', names });
   },
 
   async reply(docId: string, parentName: string, contents: string): Promise<void> {
     const author = useToolStore.getState().author;
-    await documentService.applyOperation(docId, 'Reply to comment', (bytes) =>
-      addReply(bytes, parentName, { id: uid('reply'), author, contents })
-    );
+    await documentService.applyServerOp(docId, 'Reply to comment', {
+      kind: 'addReply',
+      parentName,
+      reply: { id: uid('reply'), author, contents }
+    });
   },
 
   async setResolved(docId: string, parentName: string, resolved: boolean): Promise<void> {
     const author = useToolStore.getState().author;
-    await documentService.applyOperation(docId, resolved ? 'Resolve comment' : 'Reopen comment', (bytes) =>
-      setReviewState(bytes, parentName, resolved ? 'Completed' : 'None', author, uid('state'))
-    );
+    await documentService.applyServerOp(docId, resolved ? 'Resolve comment' : 'Reopen comment', {
+      kind: 'setReviewState',
+      parentName,
+      state: resolved ? 'Completed' : 'None',
+      author,
+      stateId: uid('state')
+    });
   }
 };

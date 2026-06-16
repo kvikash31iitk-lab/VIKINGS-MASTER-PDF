@@ -7,6 +7,7 @@ import type {
   BatchProgressEvent,
   SignatureVerificationResult
 } from '../../shared/types';
+import type { PdfOpDescriptor } from '../../core/pdf/op-runner';
 
 export type WorkerRequest =
   | { jobId: string; kind: 'encrypt'; payload: EncryptRequest }
@@ -14,6 +15,7 @@ export type WorkerRequest =
   | { jobId: string; kind: 'sign'; payload: SignRequest }
   | { jobId: string; kind: 'verify'; payload: { bytes: Uint8Array } }
   | { jobId: string; kind: 'merge'; payload: { files: Uint8Array[] } }
+  | { jobId: string; kind: 'apply-op'; payload: { bytes: Uint8Array; op: PdfOpDescriptor } }
   | { jobId: string; kind: 'batch'; payload: BatchJobRequest }
   | { jobId: string; kind: 'cancel' };
 

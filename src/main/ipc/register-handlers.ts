@@ -20,6 +20,7 @@ import type { AiProxyService } from '../services/ai-proxy-service';
 import type { UpdateService } from '../services/update-service';
 import type { PluginService } from '../services/plugin-service';
 import type { WorkerPool } from '../workers/worker-pool';
+import type { PdfOpDescriptor } from '../../core/pdf/op-runner';
 import type { OcrMainService, RecognizeRequest } from '../services/ocr-main-service';
 import type {
   RecentFilesRepository,
@@ -209,6 +210,10 @@ export function registerIpcHandlers(container: Container, repos: Repositories): 
   });
   handle(IPC.PdfMergeFiles, async (files_: Uint8Array[]) => {
     const result = await pool.run({ kind: 'merge', payload: { files: files_ } });
+    return result.bytes!;
+  });
+  handle(IPC.PdfApplyOp, async (payload: { bytes: Uint8Array; op: PdfOpDescriptor }) => {
+    const result = await pool.run({ kind: 'apply-op', payload });
     return result.bytes!;
   });
 

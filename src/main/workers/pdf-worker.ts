@@ -15,6 +15,7 @@ import { applyWatermark, type WatermarkOptions } from '../../core/pdf/watermark'
 import { applyHeaderFooter, type HeaderFooterOptions } from '../../core/pdf/header-footer';
 import { applyBatesNumbering, type BatesOptions } from '../../core/pdf/bates';
 import { compressPdf, COMPRESSION_PROFILES, type CompressionProfile } from '../../core/pdf/compression';
+import { runPdfOp } from '../../core/pdf/op-runner';
 import type { WorkerRequest, WorkerResponse } from './worker-protocol';
 import type { BatchJobRequest, BatchProgressEvent, EncryptRequest } from '../../shared/types';
 
@@ -66,6 +67,11 @@ async function handle(req: Exclude<WorkerRequest, { kind: 'cancel' }>): Promise<
     }
     case 'merge': {
       const bytes = await mergePdfs(req.payload.files);
+      respond({ jobId: req.jobId, type: 'result', bytes });
+      break;
+    }
+    case 'apply-op': {
+      const bytes = await runPdfOp(req.payload.bytes, req.payload.op);
       respond({ jobId: req.jobId, type: 'result', bytes });
       break;
     }

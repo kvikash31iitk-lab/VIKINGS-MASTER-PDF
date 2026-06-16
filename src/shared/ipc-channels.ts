@@ -67,6 +67,7 @@ export const IPC = {
   PdfSign: 'pdf:sign',
   PdfVerifySignatures: 'pdf:verify-signatures',
   PdfMergeFiles: 'pdf:merge-files',
+  PdfApplyOp: 'pdf:apply-op', // serializable mutation → worker pool
   PdfJobProgress: 'pdf:job-progress', // main → renderer
 
   // Conversion helpers that need main-process capabilities
@@ -113,7 +114,10 @@ export const IPC = {
   UpdateCheck: 'update:check',
   UpdateDownload: 'update:download',
   UpdateInstall: 'update:install',
-  UpdateEvent: 'update:event' // main → renderer
+  UpdateEvent: 'update:event', // main → renderer
+
+  // Database health
+  DbDegraded: 'db:degraded' // main → renderer (persistence unavailable)
 } as const;
 
 export type IpcChannel = (typeof IPC)[keyof typeof IPC];
@@ -129,7 +133,8 @@ export const INVOKE_CHANNELS: ReadonlySet<string> = new Set(
         IPC.PdfJobProgress,
         IPC.BatchProgress,
         IPC.AiProxyChunk,
-        IPC.UpdateEvent
+        IPC.UpdateEvent,
+        IPC.DbDegraded
       ].includes(c as never)
   )
 );
@@ -142,5 +147,6 @@ export const EVENT_CHANNELS: ReadonlySet<string> = new Set([
   IPC.PdfJobProgress,
   IPC.BatchProgress,
   IPC.AiProxyChunk,
-  IPC.UpdateEvent
+  IPC.UpdateEvent,
+  IPC.DbDegraded
 ]);

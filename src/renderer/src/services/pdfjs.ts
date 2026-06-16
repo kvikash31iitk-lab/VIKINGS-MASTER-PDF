@@ -49,7 +49,13 @@ export async function loadPdf(bytes: Uint8Array, password?: string): Promise<Loa
 export async function renderPageToCanvas(
   page: PDFPageProxy,
   scale: number,
-  options: { dpr?: number; background?: string; ocConfig?: unknown } = {}
+  options: {
+    dpr?: number;
+    background?: string;
+    ocConfig?: unknown;
+    /** Receives the RenderTask so the caller can cancel it on scroll/zoom. */
+    onRenderTask?: (task: { cancel: () => void }) => void;
+  } = {}
 ): Promise<HTMLCanvasElement> {
   const dpr = options.dpr ?? Math.min(window.devicePixelRatio || 1, 2);
   const viewport = page.getViewport({ scale: scale * dpr });
@@ -59,14 +65,16 @@ export async function renderPageToCanvas(
   canvas.style.width = `${Math.ceil(viewport.width / dpr)}px`;
   canvas.style.height = `${Math.ceil(viewport.height / dpr)}px`;
   const ctx = canvas.getContext('2d', { alpha: false })!;
-  await page.render({
+  const task = page.render({
     canvasContext: ctx,
     viewport,
     background: options.background ?? '#ffffff',
     ...(options.ocConfig
       ? { optionalContentConfigPromise: Promise.resolve(options.ocConfig) as never }
       : {})
-  }).promise;
+  });
+  options.onRenderTask?.(task);
+  await task.promise;
   return canvas;
 }
 

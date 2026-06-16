@@ -153,6 +153,12 @@ function onReady(): void {
     for (const file of pendingOpenFiles.splice(0)) {
       win.webContents.send(IPC.FileOpenedExternally, file);
     }
+    // Surface degraded persistence (native module failed to load) to the user.
+    if (db.kind === 'null') {
+      win.webContents.send(IPC.DbDegraded, {
+        reason: 'The local database could not be opened — settings, recent files and autosave will not persist this session.'
+      });
+    }
   });
 
   // Crash recovery flag: dirty until a clean quit.

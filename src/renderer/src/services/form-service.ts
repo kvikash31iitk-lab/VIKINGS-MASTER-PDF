@@ -1,5 +1,5 @@
 /** Form designer service — commits field drafts into real AcroForm fields. */
-import { addFormFields, readFormData, fillFormData, flattenForm, formDataToJson, formDataFromJson, type FormFieldSpec } from '@core/pdf/form-builder';
+import { readFormData, formDataToJson, formDataFromJson, type FormFieldSpec } from '@core/pdf/form-builder';
 import { documentService } from './document-service';
 import { useFormsStore, toast } from '../stores/ui-stores';
 import { ipc } from './ipc';
@@ -48,7 +48,7 @@ export const formService = {
           break;
       }
     }
-    await documentService.applyOperation(docId, 'Add form fields', (bytes) => addFormFields(bytes, specs));
+    await documentService.applyServerOp(docId, 'Add form fields', { kind: 'addFormFields', specs });
     useFormsStore.getState().clear(docId);
     toast.success('Form fields added', `${specs.length} field(s) created`);
     return specs.length;
@@ -80,12 +80,12 @@ export const formService = {
     if (!paths || paths.length === 0) return;
     const json = new TextDecoder().decode(await ipc.files.read(paths[0]!));
     const values = formDataFromJson(json);
-    await documentService.applyOperation(docId, 'Fill form', (bytes) => fillFormData(bytes, values));
+    await documentService.applyServerOp(docId, 'Fill form', { kind: 'fillFormData', values });
     toast.success('Form data imported', `${values.length} field(s) filled`);
   },
 
   async flatten(docId: string): Promise<void> {
-    await documentService.applyOperation(docId, 'Flatten form', (bytes) => flattenForm(bytes));
+    await documentService.applyServerOp(docId, 'Flatten form', { kind: 'flattenForm' });
     toast.success('Form flattened', 'Fields are now static page content');
   }
 };

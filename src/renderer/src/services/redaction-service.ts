@@ -2,7 +2,7 @@
  * Redaction orchestration — geometry mapping for search/pattern marks and
  * the apply step that rasterizes marked pages with regions destroyed.
  */
-import { findPatternMatches, findSearchMatches, applyRedactions } from '@core/pdf/redaction';
+import { findPatternMatches, findSearchMatches } from '@core/pdf/redaction';
 import type { CensoredPage } from '@core/pdf/redaction';
 import { documentService } from './document-service';
 import { pageRenderService } from './page-render-service';
@@ -120,8 +120,11 @@ export const redactionService = {
         );
         censored.push({ pageIndex, imageBytes: png, imageFormat: 'png' });
       }
-      await documentService.applyOperation(docId, 'Apply redactions', (bytes) =>
-        applyRedactions(bytes, censored)
+      await documentService.applyServerOp(
+        docId,
+        'Apply redactions',
+        { kind: 'applyRedactions', pages: censored },
+        [...byPage.keys()]
       );
       useRedactionStore.getState().clear(docId);
       void ipc.log.audit({

@@ -357,7 +357,14 @@ export class VersionsRepository {
        ORDER BY created_at DESC LIMIT -1 OFFSET ?`,
       [docPath, keep]
     );
-    for (const row of excess) this.db.run('DELETE FROM versions WHERE id = ?', [row.id]);
+    if (excess.length === 0) return [];
+    // Single statement instead of N round-trips, so the synchronous SQLite call
+    // doesn't stall the main process while pruning a long version history.
+    const placeholders = excess.map(() => '?').join(', ');
+    this.db.run(
+      `DELETE FROM versions WHERE id IN (${placeholders})`,
+      excess.map((r) => r.id)
+    );
     return excess.map((r) => r.version_file);
   }
 }

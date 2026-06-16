@@ -37,6 +37,7 @@ import type {
   UpdateEventPayload
 } from '@shared/types';
 import type { AppSettings } from '@shared/settings-schema';
+import type { PdfOpDescriptor } from '@core/pdf/op-runner';
 
 export class IpcError extends Error {
   constructor(
@@ -142,7 +143,13 @@ export const ipc = {
     sign: (req: SignRequest) => call<Uint8Array>(IPC.PdfSign, req),
     verifySignatures: (bytes: Uint8Array) =>
       call<SignatureVerificationResult[]>(IPC.PdfVerifySignatures, bytes),
-    mergeFiles: (files: Uint8Array[]) => call<Uint8Array>(IPC.PdfMergeFiles, files)
+    mergeFiles: (files: Uint8Array[]) => call<Uint8Array>(IPC.PdfMergeFiles, files),
+    /** Offload a serializable bytes→bytes mutation to the main-process worker pool. */
+    applyOp: (payload: { bytes: Uint8Array; op: PdfOpDescriptor }) =>
+      call<Uint8Array>(IPC.PdfApplyOp, payload)
+  },
+  db: {
+    onDegraded: (fn: (info: { reason: string }) => void) => on(IPC.DbDegraded, fn)
   },
   convert: {
     htmlToPdf: (req: HtmlToPdfRequest) => call<Uint8Array>(IPC.ConvertHtmlToPdf, req),

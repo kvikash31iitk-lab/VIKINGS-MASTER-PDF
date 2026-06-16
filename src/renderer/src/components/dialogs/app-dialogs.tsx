@@ -11,9 +11,7 @@ import { useDialogStore, useFormsStore, toast } from '../../stores/ui-stores';
 import { useSettingsStore } from '../../stores/settings-store';
 import { usePluginStore, pluginRuntime } from '../../plugins/plugin-runtime';
 import { commands } from '../../services/command-registry';
-import { writeMetadata, readMetadata } from '@core/pdf/metadata';
-import { addAttachment } from '@core/pdf/attachments';
-import { addAnnotations } from '@core/pdf/annotation-writer';
+import { readMetadata } from '@core/pdf/metadata';
 import { createBlankPdf, PAGE_SIZES } from '@core/pdf/page-ops';
 import { textToPdf } from '@core/convert/text-to-pdf';
 import { Modal } from '../common/Modal';
@@ -501,16 +499,21 @@ export function SignatureManagerDialog() {
     if (!runtime) return;
     const page = await runtime.pdf.getPage(doc.view.page);
     const vp = page.getViewport({ scale: 1 });
-    const { composePageContent } = await import('@core/pdf/content-composer');
     const w = 160;
     const h = 56;
-    await documentService.applyOperation(doc.id, 'Place signature', (bytes) =>
-      composePageContent(bytes, [
-        {
-          pageIndex: doc.view.page - 1,
-          op: { kind: 'image', x: vp.width - w - 48, y: 48, width: w, height: h, bytes: sig.imagePng, format: 'png' }
-        }
-      ])
+    await documentService.applyServerOp(
+      doc.id,
+      'Place signature',
+      {
+        kind: 'composePageContent',
+        ops: [
+          {
+            pageIndex: doc.view.page - 1,
+            op: { kind: 'image', x: vp.width - w - 48, y: 48, width: w, height: h, bytes: sig.imagePng, format: 'png' }
+          }
+        ]
+      },
+      [doc.view.page - 1]
     );
     toast.success('Signature placed', `Page ${doc.view.page} — drag-place coming to the Edit tab`);
     close();
@@ -598,7 +601,7 @@ export function MetadataEditDialog() {
   if (!doc) return null;
 
   const save = async (): Promise<void> => {
-    await documentService.applyOperation(doc.id, 'Edit metadata', (bytes) => writeMetadata(bytes, meta));
+    await documentService.applyServerOp(doc.id, 'Edit metadata', { kind: 'writeMetadata', meta });
     toast.success('Metadata updated');
     close();
   };
@@ -626,9 +629,12 @@ export function AttachFileDialog() {
   const attach = async (): Promise<void> => {
     if (!path) return;
     const bytes = await ipc.files.read(path);
-    await documentService.applyOperation(doc.id, 'Attach file', (docBytes) =>
-      addAttachment(docBytes, bytes, baseName(path), { description })
-    );
+    await documentService.applyServerOp(doc.id, 'Attach file', {
+      kind: 'addAttachment',
+      fileBytes: bytes,
+      fileName: baseName(path),
+      options: { description }
+    });
     toast.success('File attached', baseName(path));
     close();
   };
@@ -662,19 +668,25 @@ export function LinkDialog() {
     if (!runtime) return;
     const page = await runtime.pdf.getPage(payload.pageIndex + 1);
     const vp = page.getViewport({ scale: 1 });
-    await documentService.applyOperation(payload.docId, 'Add link', (bytes) =>
-      addAnnotations(bytes, [
-        {
-          kind: 'link', id: uid('link'), pageIndex: payload.pageIndex, color: '#2563eb', opacity: 1,
-          rect: {
-            x: payload.rect.x,
-            y: vp.height - payload.rect.y - payload.rect.h,
-            width: payload.rect.w,
-            height: payload.rect.h
-          },
-          url
-        }
-      ])
+    await documentService.applyServerOp(
+      payload.docId,
+      'Add link',
+      {
+        kind: 'addAnnotations',
+        annots: [
+          {
+            kind: 'link', id: uid('link'), pageIndex: payload.pageIndex, color: '#2563eb', opacity: 1,
+            rect: {
+              x: payload.rect.x,
+              y: vp.height - payload.rect.y - payload.rect.h,
+              width: payload.rect.w,
+              height: payload.rect.h
+            },
+            url
+          }
+        ]
+      },
+      [payload.pageIndex]
     );
     toast.success('Link added');
     close();

@@ -9,13 +9,7 @@ import { annotationService } from '../services/annotation-service';
 import { searchService } from '../services/search-service';
 import { formService } from '../services/form-service';
 import { ipc } from '../services/ipc';
-import {
-  insertBlankPages,
-  deletePages,
-  duplicatePages,
-  rotatePages,
-  extractPages
-} from '@core/pdf/page-ops';
+import { extractPages } from '@core/pdf/page-ops';
 import { useDocumentsStore, activeDoc } from '../stores/documents-store';
 import { useAppStore } from '../stores/app-store';
 import { useDialogStore, useToolStore, useSearchStore, useFormsStore, toast } from '../stores/ui-stores';
@@ -306,9 +300,10 @@ export function registerBuiltInCommands(): void {
       run: async () => {
         const docId = requireActive();
         const meta = activeDoc()!;
-        await documentService.applyOperation(docId, 'Insert blank page', (bytes) =>
-          insertBlankPages(bytes, meta.view.page)
-        );
+        await documentService.applyServerOp(docId, 'Insert blank page', {
+          kind: 'insertBlankPages',
+          index: meta.view.page
+        });
       }
     },
     { id: 'organize.insertFromFile', label: 'Insert From File…', when: needsDoc, run: () => show('insert-pages') },
@@ -319,9 +314,10 @@ export function registerBuiltInCommands(): void {
       run: async () => {
         const docId = requireActive();
         const pages = await selectedOrCurrentPages();
-        await documentService.applyOperation(docId, `Delete ${pages.length} page(s)`, (bytes) =>
-          deletePages(bytes, pages)
-        );
+        await documentService.applyServerOp(docId, `Delete ${pages.length} page(s)`, {
+          kind: 'deletePages',
+          indices: pages
+        });
         useDocumentsStore.getState().setSelectedPages([]);
       }
     },
@@ -332,9 +328,10 @@ export function registerBuiltInCommands(): void {
       run: async () => {
         const docId = requireActive();
         const pages = await selectedOrCurrentPages();
-        await documentService.applyOperation(docId, 'Duplicate page(s)', (bytes) =>
-          duplicatePages(bytes, pages)
-        );
+        await documentService.applyServerOp(docId, 'Duplicate page(s)', {
+          kind: 'duplicatePages',
+          indices: pages
+        });
       }
     },
     {
@@ -345,7 +342,7 @@ export function registerBuiltInCommands(): void {
       run: async () => {
         const docId = requireActive();
         const pages = await selectedOrCurrentPages();
-        await documentService.applyOperation(docId, 'Rotate left', (bytes) => rotatePages(bytes, pages, -90));
+        await documentService.applyServerOp(docId, 'Rotate left', { kind: 'rotatePages', indices: pages, delta: -90 });
       }
     },
     {
@@ -356,7 +353,7 @@ export function registerBuiltInCommands(): void {
       run: async () => {
         const docId = requireActive();
         const pages = await selectedOrCurrentPages();
-        await documentService.applyOperation(docId, 'Rotate right', (bytes) => rotatePages(bytes, pages, 90));
+        await documentService.applyServerOp(docId, 'Rotate right', { kind: 'rotatePages', indices: pages, delta: 90 });
       }
     },
     {

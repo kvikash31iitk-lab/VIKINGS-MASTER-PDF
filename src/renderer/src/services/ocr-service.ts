@@ -4,7 +4,7 @@
  * text boxes) through the core engine.
  */
 import { addSearchableTextLayer, groupWordsIntoLines, type OcrPageResult } from '@core/ocr/searchable-overlay';
-import { composePageContent, type PlacedOp } from '@core/pdf/content-composer';
+import type { PlacedOp } from '@core/pdf/content-composer';
 import { documentService } from './document-service';
 import { pageRenderService } from './page-render-service';
 import { ipc } from './ipc';
@@ -152,8 +152,12 @@ export const ocrService = {
             });
           }
         }
-        await documentService.applyOperation(docId, 'OCR editable text', (bytes) =>
-          composePageContent(bytes, ops)
+        const changedPages = [...new Set(ops.map((o) => o.pageIndex))];
+        await documentService.applyServerOp(
+          docId,
+          'OCR editable text',
+          { kind: 'composePageContent', ops },
+          changedPages
         );
         useDocumentsStore.getState().update(docId, { ocrApplied: true });
         toast.success('OCR complete', 'Editable text placed on pages');

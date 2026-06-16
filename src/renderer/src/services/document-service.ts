@@ -6,6 +6,7 @@
 import { loadPdf, extractPageText, extractTextItems, PasswordRequiredError } from './pdfjs';
 import type { PDFDocumentProxy, SimpleTextItem } from './pdfjs';
 import { TextIndex } from '@core/search/text-index';
+import type { PdfOpDescriptor } from '@core/pdf/op-runner';
 import { readBasicInfo } from '@core/pdf/page-ops';
 import { ipc, rlog } from './ipc';
 import { eventBus } from '@shared/event-bus';
@@ -164,6 +165,11 @@ class DocumentService {
       await runtime.pdf.destroy().catch(() => undefined);
       this.runtimes.delete(docId);
     }
+    // Stop the autosave loop once the last document closes; it restarts on open.
+    if (this.runtimes.size === 0 && this.autosaveTimer) {
+      clearInterval(this.autosaveTimer);
+      this.autosaveTimer = null;
+    }
     useDocumentsStore.getState().remove(docId);
     eventBus.emit('document:closed', { docId });
   }
@@ -171,32 +177,80 @@ class DocumentService {
   // ───────────────────────── Mutation pipeline ─────────────────────────
 
   /**
-   * Runs a bytes→bytes operation, records undo history, reloads the PDF.js
-   * document and marks the tab dirty. All feature services call this.
+   * Runs a bytes→bytes operation in the renderer, records undo history, reloads
+   * the PDF.js document and marks the tab dirty. Use this only for operations
+   * that need renderer-only context (e.g. PDF.js page proxies); pure pdf-lib
+   * mutations should use applyServerOp so they run off the UI thread.
+   *
+   * `changedPages` lets a structure-preserving edit invalidate only the caches
+   * of the pages it touched; omit it for structural edits (insert/delete/
+   * reorder) so all page caches are rebuilt.
    */
   async applyOperation(
     docId: string,
     label: string,
-    op: (bytes: Uint8Array) => Promise<Uint8Array>
+    op: (bytes: Uint8Array) => Promise<Uint8Array>,
+    changedPages?: number[]
   ): Promise<void> {
     const runtime = this.runtimes.get(docId);
     if (!runtime) throw new Error('Document is not open');
     const before = runtime.bytes;
     const after = await op(before);
-    runtime.history.push(before, label);
-    await this.swapBytes(runtime, after);
-    useDocumentsStore.getState().update(docId, { dirty: true, fileSize: after.length });
-    eventBus.emit('document:modified', { docId });
+    await this.finalize(runtime, before, label, after, changedPages);
   }
 
-  private async swapBytes(runtime: DocumentRuntime, bytes: Uint8Array): Promise<void> {
+  /**
+   * Like applyOperation, but the mutation runs in the main-process worker pool
+   * (off the renderer's UI thread). The descriptor must be structured-clone
+   * serializable — see PdfOpDescriptor / runPdfOp.
+   */
+  async applyServerOp(
+    docId: string,
+    label: string,
+    op: PdfOpDescriptor,
+    changedPages?: number[]
+  ): Promise<void> {
+    const runtime = this.runtimes.get(docId);
+    if (!runtime) throw new Error('Document is not open');
+    const before = runtime.bytes;
+    const after = await ipc.pdf.applyOp({ bytes: before, op });
+    await this.finalize(runtime, before, label, after, changedPages);
+  }
+
+  private async finalize(
+    runtime: DocumentRuntime,
+    before: Uint8Array,
+    label: string,
+    after: Uint8Array,
+    changedPages?: number[]
+  ): Promise<void> {
+    runtime.history.push(before, label);
+    await this.swapBytes(runtime, after, changedPages);
+    useDocumentsStore.getState().update(runtime.id, { dirty: true, fileSize: after.length });
+    eventBus.emit('document:modified', { docId: runtime.id });
+  }
+
+  private async swapBytes(
+    runtime: DocumentRuntime,
+    bytes: Uint8Array,
+    changedPages?: number[]
+  ): Promise<void> {
     const old = runtime.pdf;
     const { doc } = await loadPdf(bytes, runtime.password);
     runtime.bytes = bytes;
     runtime.pdf = doc;
-    runtime.textIndex = new TextIndex();
-    runtime.indexedPages.clear();
-    runtime.textItemsCache.clear();
+    if (changedPages && changedPages.length > 0 && doc.numPages === old.numPages) {
+      // Structure-preserving edit: only rebuild the touched pages' caches.
+      for (const p of changedPages) {
+        runtime.indexedPages.delete(p);
+        runtime.textItemsCache.delete(p);
+        runtime.textIndex.clearPage(p);
+      }
+    } else {
+      runtime.textIndex = new TextIndex();
+      runtime.indexedPages.clear();
+      runtime.textItemsCache.clear();
+    }
     await old.destroy().catch(() => undefined);
     useDocumentsStore.getState().update(runtime.id, { pageCount: doc.numPages });
     const view = useDocumentsStore.getState().docs.find((d) => d.id === runtime.id)?.view;

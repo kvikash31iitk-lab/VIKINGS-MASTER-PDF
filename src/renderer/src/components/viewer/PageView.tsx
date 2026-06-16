@@ -42,6 +42,7 @@ export const PageView = memo(function PageView({
   const [textItems, setTextItems] = useState<SimpleTextItem[]>([]);
   const [rendered, setRendered] = useState(false);
   const renderedZoomRef = useRef(0);
+  const renderTaskRef = useRef<{ cancel: () => void } | null>(null);
   const workspaceMode = useDocumentsStore((s) => s.workspaceMode);
   const tool = useToolStore((s) => s.tool);
 
@@ -49,6 +50,9 @@ export const PageView = memo(function PageView({
   const renderedNonceRef = useRef(-1);
   useEffect(() => {
     let cancelled = false;
+    // Abort any render still running for this page slot before starting a new one.
+    renderTaskRef.current?.cancel();
+    renderTaskRef.current = null;
     void (async () => {
       const runtime = documentService.runtime(docId);
       if (!runtime) return;
@@ -64,9 +68,13 @@ export const PageView = memo(function PageView({
         const vp = page.getViewport({ scale: 1 });
         onActualSize(layout.pageIndex, { width: vp.width, height: vp.height });
         const canvas = await renderPageToCanvas(page, renderZoom, {
-          ...(runtime.ocConfig ? { ocConfig: runtime.ocConfig } : {})
+          ...(runtime.ocConfig ? { ocConfig: runtime.ocConfig } : {}),
+          onRenderTask: (task) => {
+            renderTaskRef.current = task;
+          }
         });
         if (cancelled) return;
+        renderTaskRef.current = null;
         renderedZoomRef.current = renderZoom;
         renderedNonceRef.current = renderNonce;
         const host = canvasHostRef.current;
@@ -77,11 +85,13 @@ export const PageView = memo(function PageView({
           setRendered(true);
         }
       } catch {
-        /* page render cancelled mid-flight (tab closed / reloaded) */
+        /* render cancelled mid-flight (scroll/zoom/tab close) — RenderingCancelledException */
       }
     })();
     return () => {
       cancelled = true;
+      renderTaskRef.current?.cancel();
+      renderTaskRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [docId, layout.pageIndex, renderZoom, renderNonce]);
