@@ -49,7 +49,7 @@ export function ToastHost() {
               )}
             </div>
             <button onClick={() => dismiss(t.id)} aria-label="Dismiss notification"
-              className="shrink-0 rounded p-0.5 text-app-text-faint hover:bg-app-surface-3 hover:text-app-text">
+              className="shrink-0 rounded p-1 text-app-text-faint hover:bg-app-surface-3 hover:text-app-text">
               <Icon name="close" size={12} />
             </button>
           </div>

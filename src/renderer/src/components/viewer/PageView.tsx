@@ -119,8 +119,8 @@ export const PageView = memo(function PageView({
     >
       <div ref={canvasHostRef} className="absolute inset-0 overflow-hidden" aria-hidden="true" />
       {!rendered && (
-        <div className="absolute inset-0 flex items-center justify-center bg-white">
-          <div className="h-5 w-5 animate-spin rounded-full border-2 border-app-accent border-t-transparent" />
+        <div className="absolute inset-0 flex items-center justify-center bg-white" role="status" aria-label="Loading page">
+          <div className="h-5 w-5 animate-spin rounded-full border-2 border-app-accent border-t-transparent" aria-hidden="true" />
         </div>
       )}
 
@@ -137,7 +137,7 @@ export const PageView = memo(function PageView({
               left: item.x * scale,
               top: (layout.ptHeight - item.y - item.height * GLYPH_ASCENT_RATIO) * scale,
               fontSize: Math.max(1, item.height * scale),
-              fontFamily: 'sans-serif'
+              fontFamily: '"Segoe UI", system-ui, sans-serif'
             }}
           >
             {item.str}

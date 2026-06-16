@@ -59,13 +59,30 @@ export function CommandPalette() {
   return (
     <div className="fixed inset-0 z-[80] flex items-start justify-center bg-black/35 pt-24 animate-fade-in"
       onMouseDown={(e) => e.target === e.currentTarget && setOpen(false)} role="presentation">
-      <div className="w-[520px] max-w-[calc(100vw-48px)] animate-slide-down rounded-xl border border-app-border bg-app-surface shadow-dialog"
-        role="dialog" aria-label="Command palette">
+      <div
+        className="w-[520px] max-w-[calc(100vw-48px)] animate-slide-down rounded-xl border border-app-border bg-app-surface shadow-dialog"
+        role="dialog"
+        aria-label="Command palette"
+        aria-modal="true"
+        onKeyDown={(e) => {
+          if (e.key !== 'Tab') return;
+          const focusable = [...e.currentTarget.querySelectorAll<HTMLElement>('input, button')];
+          if (focusable.length === 0) return;
+          const first = focusable[0]!;
+          const last = focusable[focusable.length - 1]!;
+          if (e.shiftKey) {
+            if (document.activeElement === first) { e.preventDefault(); last.focus(); }
+          } else {
+            if (document.activeElement === last) { e.preventDefault(); first.focus(); }
+          }
+        }}
+      >
         <div className="flex items-center gap-2 border-b border-app-border px-3 py-2.5">
           <Icon name="search" size={15} className="text-app-text-muted" />
           <input
             ref={inputRef}
             value={query}
+            spellCheck={false}
             onChange={(e) => {
               setQuery(e.target.value);
               setIndex(0);

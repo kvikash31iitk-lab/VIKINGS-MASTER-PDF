@@ -425,7 +425,7 @@ export function AnnotationOverlay({
       onKeyDown={onKeyDown}
       className="absolute inset-0"
       style={{ pointerEvents: interactive ? 'auto' : 'none' }}
-      aria-label="Annotation layer"
+      aria-label={interactive ? 'PDF annotation editing layer — use ribbon tools to annotate' : 'PDF annotation layer'}
     >
       <canvas ref={canvasElRef} />
     </div>

@@ -144,7 +144,7 @@ export function OrganizeGrid({ doc }: { doc: OpenDocumentMeta }) {
         </span>
         <Action icon="close" label="Close Grid" commandId="organize.mode" />
       </div>
-      <div className="flex flex-1 flex-wrap content-start gap-2 overflow-y-auto bg-app-workspace p-4" role="listbox" aria-label="Pages">
+      <div className="flex flex-1 flex-wrap content-start gap-2 overflow-y-auto bg-app-workspace p-4" role="listbox" aria-label="Pages" aria-multiselectable="true">
         {Array.from({ length: doc.pageCount }, (_, i) => (
           <PageThumb
             key={`${doc.id}-${i}-${doc.fileSize}`}

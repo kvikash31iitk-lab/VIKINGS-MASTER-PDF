@@ -258,6 +258,9 @@ export function PdfViewer({ doc }: { doc: OpenDocumentMeta }) {
   return (
     <div className="relative flex-1 overflow-hidden">
       <FindBar />
+      <div className="sr-only" aria-live="polite" aria-atomic="true">
+        {`Page ${doc.view.page} of ${doc.pageCount}`}
+      </div>
       <div
         ref={containerRef}
         onScroll={onScroll}

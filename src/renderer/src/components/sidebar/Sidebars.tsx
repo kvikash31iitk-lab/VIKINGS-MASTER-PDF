@@ -116,8 +116,13 @@ function ResizablePanel({
       <div className="min-h-0 flex-1 overflow-y-auto">{children}</div>
       <div
         onPointerDown={onPointerDown}
+        onKeyDown={(e) => {
+          if (e.key === 'ArrowLeft') { e.preventDefault(); onResize(width - 16); }
+          if (e.key === 'ArrowRight') { e.preventDefault(); onResize(width + 16); }
+        }}
+        tabIndex={0}
         className={cx(
-          'absolute bottom-0 top-0 z-10 w-1 cursor-col-resize hover:bg-app-accent/40',
+          'absolute bottom-0 top-0 z-10 w-1 cursor-col-resize hover:bg-app-accent/40 focus-visible:bg-app-accent/40',
           side === 'left' ? 'right-0' : 'left-0'
         )}
         role="separator"

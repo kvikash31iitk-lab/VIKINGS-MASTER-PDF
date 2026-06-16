@@ -73,6 +73,7 @@
   --vk-workspace: #000000;
   --vk-shadow-flyout: 0 0 0 1px #ffffff;
   --vk-shadow-dialog: 0 0 0 2px #ffffff;
+  --vk-page-shadow: 0 0 0 1px #ffffff;
   color-scheme: dark;
 }
 
@@ -134,7 +135,7 @@ body {
 /* ════════════════════════ Viewer layers ════════════════════════ */
 
 .vk-page-shadow {
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35), 0 0 1px rgba(0, 0, 0, 0.4);
+  box-shadow: var(--vk-page-shadow, 0 2px 8px rgba(0, 0, 0, 0.35), 0 0 1px rgba(0, 0, 0, 0.4));
 }
 
 /* PDF.js text layer */

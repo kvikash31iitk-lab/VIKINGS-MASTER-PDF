@@ -48,7 +48,7 @@ export function StatusBar() {
           onKeyDown={(e) => e.key === 'Enter' && commitPage()}
           onFocus={(e) => e.target.select()}
           aria-label="Current page"
-          className="h-4.5 h-5 w-10 rounded border border-app-border bg-app-surface-2 text-center text-2xs"
+          className="h-5 w-10 rounded border border-app-border bg-app-surface-2 text-center text-2xs"
         />
         / {doc.pageCount}
       </span>

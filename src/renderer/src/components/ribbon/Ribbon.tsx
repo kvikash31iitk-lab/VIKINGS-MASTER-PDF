@@ -37,6 +37,7 @@ function RibbonButton({ item }: { item: RibbonItem }) {
         onClick={onClick}
         disabled={!enabled}
         aria-pressed={item.kind === 'tool' ? pressed : undefined}
+        aria-label={item.label}
         title={shortcut ? `${item.label} (${shortcut})` : item.label}
         className={cx(
           'flex h-[66px] w-16 flex-col items-center justify-center gap-1 rounded-md px-1 text-2xs leading-tight',
@@ -54,6 +55,7 @@ function RibbonButton({ item }: { item: RibbonItem }) {
       onClick={onClick}
       disabled={!enabled}
       aria-pressed={item.kind === 'tool' ? pressed : undefined}
+      aria-label={item.label}
       title={shortcut ? `${item.label} (${shortcut})` : item.label}
       className={cx(
         'flex h-[22px] w-full min-w-0 items-center gap-1.5 rounded px-1.5 text-2xs',
