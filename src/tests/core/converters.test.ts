@@ -6,7 +6,7 @@ import { buildXlsx } from '@core/convert/xlsx-writer';
 import { buildPptx } from '@core/convert/pptx-writer';
 import { encodeTiff } from '@core/convert/tiff-encoder';
 import { buildHtml } from '@core/convert/html-export';
-import { buildDocxDocument } from '@core/convert/docx-export';
+import { buildDocxDocument, buildImageDocx } from '@core/convert/docx-export';
 import { imagesToPdf } from '@core/convert/image-to-pdf';
 import { reconstructPage } from '@core/convert/text-extract';
 import { linesToBlocks } from '@core/convert/text-extract';
@@ -110,6 +110,24 @@ describe('docx export', () => {
     const docXml = await zip.file('word/document.xml')!.async('string');
     expect(docXml).toContain('Heading One');
     expect(docXml).toContain('<w:tbl>');
+  });
+
+  it('buildImageDocx embeds one full-page picture per page', async () => {
+    const doc = buildImageDocx(
+      [
+        { pngBytes: TINY_PNG, widthPt: 595, heightPt: 842 },
+        { pngBytes: TINY_PNG, widthPt: 595, heightPt: 842 }
+      ],
+      'Scanned'
+    );
+    const buffer = await Packer.toBuffer(doc);
+    const zip = await JSZip.loadAsync(buffer);
+    // Images land in the media folder and the document references drawings.
+    const media = Object.keys(zip.files).filter((f) => f.startsWith('word/media/'));
+    expect(media.length).toBeGreaterThanOrEqual(2);
+    const docXml = await zip.file('word/document.xml')!.async('string');
+    expect(docXml).toContain('<w:drawing>');
+    expect(docXml).not.toContain('<w:tbl>'); // no text/tables in image mode
   });
 });
 

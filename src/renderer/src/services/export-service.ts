@@ -5,7 +5,7 @@
 import { Packer } from 'docx';
 import { reconstructPage, pageToPlainText, detectTables } from '@core/convert/text-extract';
 import type { ReconstructedPage } from '@core/convert/text-extract';
-import { buildDocxDocument } from '@core/convert/docx-export';
+import { buildImageDocx } from '@core/convert/docx-export';
 import { buildXlsx } from '@core/convert/xlsx-writer';
 import { buildPptx } from '@core/convert/pptx-writer';
 import { encodeTiff, type TiffPage } from '@core/convert/tiff-encoder';
@@ -17,6 +17,7 @@ import { ipc, rlog } from './ipc';
 import { toast, useToastStore } from '../stores/ui-stores';
 import { useDocumentsStore } from '../stores/documents-store';
 import { resolvePageSelection } from '@core/pdf/utils';
+import { canvasToPngBytes } from '../utils';
 
 export type ExportFormat = 'docx' | 'xlsx' | 'pptx' | 'png' | 'jpg' | 'tiff' | 'html' | 'txt' | 'rtf';
 
@@ -77,8 +78,18 @@ export const exportService = {
     try {
       switch (options.format) {
         case 'docx': {
-          const pages = await reconstructPages(docId, indices);
-          const doc = buildDocxDocument(pages, stem);
+          // Layout-faithful: embed each PDF page as a full-page image.
+          const dpi = options.dpi ?? 150;
+          const pageImages = [];
+          for (const i of indices) {
+            const render = await pageRenderService.renderAtDpi(docId, i, dpi);
+            pageImages.push({
+              pngBytes: await canvasToPngBytes(render.canvas),
+              widthPt: render.ptWidth,
+              heightPt: render.ptHeight
+            });
+          }
+          const doc = buildImageDocx(pageImages, stem);
           const blob = await Packer.toBlob(doc);
           await ipc.files.write(target, new Uint8Array(await blob.arrayBuffer()));
           break;

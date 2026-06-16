@@ -13,10 +13,57 @@ import {
   TableRow,
   TableCell,
   WidthType,
-  PageBreak
+  PageBreak,
+  ImageRun
 } from 'docx';
 import type { ReconstructedPage } from './text-extract';
 import { linesToBlocks } from './text-extract';
+
+const PT_TO_TWIP = 20; // 1 pt = 20 twips (Word page units)
+const PT_TO_PX = 96 / 72; // docx image transformation is in px (96 dpi)
+
+export interface DocxPageImage {
+  pngBytes: Uint8Array;
+  widthPt: number;
+  heightPt: number;
+}
+
+/**
+ * Layout-faithful PDF→Word: each PDF page is embedded as a full-page picture
+ * in its own section sized to the page with zero margins, so the document
+ * looks identical to the source PDF (text is not editable).
+ */
+export function buildImageDocx(pages: DocxPageImage[], title?: string): Document {
+  const sections = pages.map((pg) => ({
+    properties: {
+      page: {
+        size: { width: Math.round(pg.widthPt * PT_TO_TWIP), height: Math.round(pg.heightPt * PT_TO_TWIP) },
+        margin: { top: 0, right: 0, bottom: 0, left: 0, header: 0, footer: 0, gutter: 0 }
+      }
+    },
+    children: [
+      new DocxParagraph({
+        spacing: { before: 0, after: 0 },
+        children: [
+          new ImageRun({
+            type: 'png',
+            data: pg.pngBytes,
+            transformation: {
+              width: Math.round(pg.widthPt * PT_TO_PX),
+              height: Math.round(pg.heightPt * PT_TO_PX)
+            }
+          })
+        ]
+      })
+    ]
+  }));
+
+  return new Document({
+    creator: 'Vikings Master PDF',
+    title: title ?? 'Converted document',
+    sections: sections.length > 0 ? sections : [{ children: [] }]
+  });
+}
 
 export function buildDocxDocument(pages: ReconstructedPage[], title?: string): Document {
   const children: Array<DocxParagraph | Table> = [];
