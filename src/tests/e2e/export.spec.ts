@@ -45,7 +45,11 @@ test.beforeAll(async () => {
   writeFileSync(pdfPath, await doc.save());
 
   app = await electron.launch({
-    args: [MAIN, ...(process.env.CI ? ['--no-sandbox', '--disable-gpu', '--disable-dev-shm-usage'] : [])],
+    args: [
+      MAIN,
+      `--user-data-dir=${mkdtempSync(join(tmpdir(), 'vk-e2e-'))}`,
+      ...(process.env.CI ? ['--no-sandbox', '--disable-gpu', '--disable-dev-shm-usage'] : [])
+    ],
     env: { ...process.env, VK_TEST_SAVE_PATH: outPath }
   });
   page = await app.firstWindow();

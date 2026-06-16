@@ -9,6 +9,8 @@ import { buildHtml } from '@core/convert/html-export';
 import { buildDocxDocument } from '@core/convert/docx-export';
 import { imagesToPdf } from '@core/convert/image-to-pdf';
 import { reconstructPage } from '@core/convert/text-extract';
+import { linesToBlocks } from '@core/convert/text-extract';
+import type { TextLine } from '@core/convert/text-extract';
 import { buildSrgbIccProfile } from '@core/pdf/icc-profile';
 import { TINY_PNG } from '../helpers/sample-pdf';
 
@@ -137,5 +139,48 @@ describe('icc profile', () => {
     expect(colorSpace).toBe('RGB ');
     const tagCount = view.getUint32(128, false);
     expect(tagCount).toBe(9);
+  });
+});
+
+describe('linesToBlocks (editable Word/HTML structure)', () => {
+  const L = (text: string, y: number, fontSize = 11, x = 40): TextLine => ({
+    text,
+    x,
+    y,
+    width: 100,
+    fontSize,
+    items: []
+  });
+
+  it('recovers a key/value table from tab-separated rows (with wrapped cells)', () => {
+    const lines: TextLine[] = [
+      L('Item\tValue / Detail', 300, 11),
+      L('Body\tThe Lok Sabha is the lower', 286, 11),
+      L('house of Parliament', 274, 11), // wrapped continuation of the last cell
+      L('Term\t5 years', 260, 11)
+    ];
+    const blocks = linesToBlocks(lines);
+    const table = blocks.find((b) => b.kind === 'table');
+    expect(table).toBeDefined();
+    if (table?.kind === 'table') {
+      expect(table.rows[0]).toEqual(['Item', 'Value / Detail']);
+      expect(table.rows[1]![0]).toBe('Body');
+      expect(table.rows[1]![1]).toContain('lower house of Parliament'); // continuation folded in
+      expect(table.rows[2]).toEqual(['Term', '5 years']);
+    }
+  });
+
+  it('detects headings by relative font size and flows body paragraphs', () => {
+    const lines: TextLine[] = [
+      L('WHY IN NEWS', 400, 16),
+      L('On Tuesday the court set aside an order and', 384, 11),
+      L('directed a fresh inquiry into the matter.', 372, 11),
+      L('KEY FACTS', 340, 16)
+    ];
+    const blocks = linesToBlocks(lines);
+    expect(blocks[0]).toMatchObject({ kind: 'heading', text: 'WHY IN NEWS' });
+    expect(blocks[1]).toMatchObject({ kind: 'paragraph' });
+    expect((blocks[1] as { text: string }).text).toContain('fresh inquiry into the matter');
+    expect(blocks[2]).toMatchObject({ kind: 'heading', text: 'KEY FACTS' });
   });
 });

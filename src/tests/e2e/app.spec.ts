@@ -8,8 +8,9 @@
  */
 import { test, expect, _electron as electron } from '@playwright/test';
 import type { ElectronApplication, Page } from '@playwright/test';
-import { existsSync } from 'node:fs';
+import { existsSync, mkdtempSync } from 'node:fs';
 import { join } from 'node:path';
+import { tmpdir } from 'node:os';
 
 const MAIN = join(__dirname, '../../../out/main/index.js');
 
@@ -21,6 +22,8 @@ test.beforeAll(async () => {
   app = await electron.launch({
     args: [
       MAIN,
+      // Fresh profile per run so a persisted session can't leak between specs.
+      `--user-data-dir=${mkdtempSync(join(tmpdir(), 'vk-e2e-'))}`,
       // CI containers (and root users) cannot use the Chromium sandbox.
       ...(process.env.CI ? ['--no-sandbox', '--disable-gpu', '--disable-dev-shm-usage'] : [])
     ]

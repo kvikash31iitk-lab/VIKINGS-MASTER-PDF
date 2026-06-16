@@ -16,7 +16,7 @@ import {
   PageBreak
 } from 'docx';
 import type { ReconstructedPage } from './text-extract';
-import { detectTables } from './text-extract';
+import { linesToBlocks } from './text-extract';
 
 export function buildDocxDocument(pages: ReconstructedPage[], title?: string): Document {
   const children: Array<DocxParagraph | Table> = [];
@@ -26,47 +26,25 @@ export function buildDocxDocument(pages: ReconstructedPage[], title?: string): D
       children.push(new DocxParagraph({ children: [new PageBreak()] }));
     }
 
-    const tables = detectTables(page.lines);
-    const tableLineTexts = new Set<string>();
-    for (const t of tables) {
-      for (const row of t.rows) tableLineTexts.add(row.join('\t'));
-    }
-
-    let tableIdx = 0;
-    let emittedTables = new Set<number>();
-
-    for (const para of page.paragraphs) {
-      // If this paragraph's lines belong to a detected table, emit the table once.
-      const isTabular = para.lines.some((l) => l.text.includes('\t'));
-      if (isTabular && tableIdx < tables.length) {
-        if (!emittedTables.has(tableIdx)) {
-          children.push(buildTable(tables[tableIdx]!));
-          emittedTables.add(tableIdx);
-        }
-        // Advance to next table when the paragraph block ends.
-        tableIdx++;
-        continue;
-      }
-
-      if (para.isHeading) {
+    for (const block of linesToBlocks(page.lines)) {
+      if (block.kind === 'table') {
+        children.push(buildTable({ rows: block.rows }));
+      } else if (block.kind === 'heading') {
         children.push(
           new DocxParagraph({
-            heading: para.fontSize > 20 ? HeadingLevel.HEADING_1 : HeadingLevel.HEADING_2,
-            children: [new TextRun({ text: para.text })]
+            heading: block.level === 1 ? HeadingLevel.HEADING_1 : HeadingLevel.HEADING_2,
+            children: [new TextRun({ text: block.text, bold: true })]
           })
         );
       } else {
         children.push(
           new DocxParagraph({
-            children: [new TextRun({ text: para.text, size: Math.round(clampSize(para.fontSize) * 2) })],
-            spacing: { after: 160 }
+            children: [new TextRun({ text: block.text })],
+            spacing: { after: 120 }
           })
         );
       }
     }
-
-    // Reset per page.
-    emittedTables = new Set();
   });
 
   return new Document({
@@ -81,18 +59,18 @@ function buildTable(table: { rows: string[][] }): Table {
   return new Table({
     width: { size: 100, type: WidthType.PERCENTAGE },
     rows: table.rows.map(
-      (row) =>
+      (row, rowIdx) =>
         new TableRow({
           children: Array.from({ length: colCount }, (_, c) => {
             return new TableCell({
-              children: [new DocxParagraph({ children: [new TextRun({ text: row[c] ?? '' })] })]
+              children: [
+                new DocxParagraph({
+                  children: [new TextRun({ text: row[c] ?? '', bold: rowIdx === 0 })]
+                })
+              ]
             });
           })
         })
     )
   });
-}
-
-function clampSize(pt: number): number {
-  return Math.max(8, Math.min(28, Math.round(pt)));
 }

@@ -76,19 +76,36 @@ export function clusterLines(items: PositionedTextItem[]): TextLine[] {
     let maxSize = 0;
     for (const item of line.items) {
       maxSize = Math.max(maxSize, item.height || 0);
+      const spaceWidth = (item.height || 10) * 0.28;
+      const endsTabOrSpace = text.endsWith('\t') || text.endsWith(' ');
+
+      // Blank items are often inter-column "leaders": a single space whose
+      // advance width spans the whole gutter. A wide one marks a column
+      // boundary (tab); a narrow one is just an inter-word space.
+      if (item.str.trim() === '') {
+        if (text.length > 0) {
+          if (item.width > spaceWidth * 6) {
+            if (!text.endsWith('\t')) text += '\t';
+          } else if (!endsTabOrSpace) {
+            text += ' ';
+          }
+        }
+        prevEnd = item.x + item.width;
+        continue;
+      }
+
       if (prevEnd !== null) {
         const gap = item.x - prevEnd;
-        const spaceWidth = (item.height || 10) * 0.28;
         if (gap > spaceWidth * 6) {
-          text += '\t'; // wide gap → likely a column boundary
-        } else if (gap > spaceWidth * 0.6 && !text.endsWith(' ')) {
+          if (!text.endsWith('\t')) text += '\t'; // wide positional gap → column boundary
+        } else if (gap > spaceWidth * 0.6 && !endsTabOrSpace) {
           text += ' ';
         }
       }
       text += item.str;
       prevEnd = item.x + item.width;
     }
-    line.text = text.trimEnd();
+    line.text = text.replace(/^[ \t]+/, '').replace(/[ \t]+$/, '');
     line.x = line.items[0]?.x ?? 0;
     line.fontSize = maxSize || line.fontSize;
     const last = line.items[line.items.length - 1];
@@ -196,3 +213,87 @@ export function detectTables(lines: TextLine[]): DetectedTable[] {
 export function pageToPlainText(page: ReconstructedPage): string {
   return page.lines.map((l) => l.text).join('\n');
 }
+
+// ───────────────────────── Ordered document blocks (PDF→Word/HTML) ─────────────────────────
+
+export type DocBlock =
+  | { kind: 'heading'; text: string; level: 1 | 2 }
+  | { kind: 'paragraph'; text: string }
+  | { kind: 'table'; rows: string[][] };
+
+/**
+ * Converts a page's lines into an ordered sequence of headings, paragraphs and
+ * tables — the structure needed for a faithful editable Word/HTML export.
+ * Tables are recognised from tab-separated rows (clusterLines inserts a tab at
+ * wide column gaps); wrapped continuation lines are folded into the previous
+ * row's last cell so multi-line cells survive.
+ */
+export function linesToBlocks(lines: TextLine[]): DocBlock[] {
+  if (lines.length === 0) return [];
+  const sorted = [...lines].sort((a, b) => b.y - a.y); // top → bottom
+  const body = medianFontSize(sorted);
+  const headingThreshold = body * 1.22;
+  const blocks: DocBlock[] = [];
+
+  let i = 0;
+  while (i < sorted.length) {
+    const line = sorted[i]!;
+
+    // ── Table run: starts on a tab-bearing line ──
+    if (line.text.includes('\t')) {
+      const rows: string[][] = [];
+      let j = i;
+      while (j < sorted.length) {
+        const l = sorted[j]!;
+        const gapFromPrev = j > i ? sorted[j - 1]!.y - l.y : 0;
+        if (l.text.includes('\t')) {
+          rows.push(l.text.split('\t').map((c) => c.trim()));
+        } else if (rows.length > 0 && gapFromPrev >= 0 && gapFromPrev < Math.max(l.fontSize, 6) * 2) {
+          // Wrapped cell continuation → append to the last cell of the last row.
+          const last = rows[rows.length - 1]!;
+          last[last.length - 1] = `${last[last.length - 1]} ${l.text.trim()}`.trim();
+        } else {
+          break;
+        }
+        j++;
+      }
+      const cols = Math.max(...rows.map((r) => r.length));
+      if (rows.length >= 2 && cols >= 2) {
+        blocks.push({
+          kind: 'table',
+          rows: rows.map((r) => [...r, ...Array(cols - r.length).fill('')])
+        });
+        i = j;
+        continue;
+      }
+      // Single tabbed line that isn't a real table → treat as a paragraph below.
+    }
+
+    // ── Heading: a short line noticeably larger than body text ──
+    if (line.fontSize > headingThreshold && line.text.replace(/\t/g, ' ').trim().length < 160) {
+      blocks.push({ kind: 'heading', text: line.text.replace(/\t/g, ' ').trim(), level: line.fontSize > body * 1.7 ? 1 : 2 });
+      i += 1;
+      continue;
+    }
+
+    // ── Paragraph: accumulate consecutive body lines ──
+    let text = line.text.replace(/\t/g, ' ');
+    let j = i + 1;
+    while (j < sorted.length) {
+      const prev = sorted[j - 1]!;
+      const l = sorted[j]!;
+      if (l.text.includes('\t') || l.fontSize > headingThreshold) break;
+      const gap = prev.y - l.y;
+      const expected = Math.max(prev.fontSize, l.fontSize) * 1.8;
+      if (gap < 0 || gap > expected) break;
+      if (text.endsWith('-') && /^[a-z]/.test(l.text)) text = text.slice(0, -1) + l.text.trim();
+      else text += ' ' + l.text.replace(/\t/g, ' ');
+      j++;
+    }
+    const clean = text.replace(/\s+/g, ' ').trim();
+    if (clean) blocks.push({ kind: 'paragraph', text: clean });
+    i = j;
+  }
+  return blocks;
+}
+

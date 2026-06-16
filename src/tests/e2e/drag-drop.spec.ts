@@ -13,8 +13,9 @@
  */
 import { test, expect, _electron as electron } from '@playwright/test';
 import type { ElectronApplication, Page } from '@playwright/test';
-import { existsSync } from 'node:fs';
+import { existsSync, mkdtempSync } from 'node:fs';
 import { join } from 'node:path';
+import { tmpdir } from 'node:os';
 
 interface Browserish {
   DataTransfer: new () => { types: readonly string[] };
@@ -30,7 +31,11 @@ let page: Page;
 test.beforeAll(async () => {
   test.skip(!existsSync(MAIN), 'Run `npm run build` before the e2e suite');
   app = await electron.launch({
-    args: [MAIN, ...(process.env.CI ? ['--no-sandbox', '--disable-gpu', '--disable-dev-shm-usage'] : [])]
+    args: [
+      MAIN,
+      `--user-data-dir=${mkdtempSync(join(tmpdir(), 'vk-e2e-'))}`,
+      ...(process.env.CI ? ['--no-sandbox', '--disable-gpu', '--disable-dev-shm-usage'] : [])
+    ]
   });
   page = await app.firstWindow();
   await expect(page.getByRole('tab', { name: 'Home' })).toBeVisible({ timeout: 20000 });

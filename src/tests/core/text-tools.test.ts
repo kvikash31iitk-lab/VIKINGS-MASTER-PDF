@@ -53,6 +53,18 @@ describe('text reconstruction', () => {
     expect(lines[1]!.text).toBe('Second line');
   });
 
+  it('treats a wide blank "leader" item as a column boundary (tab)', () => {
+    // Real PDFs fill a two-column gutter with one space whose advance width
+    // spans the whole gap; that must become a tab, not a single space.
+    const lines = clusterLines([
+      item('Victim', 43, 519, 26, 10),
+      { str: ' ', x: 69, y: 519, width: 235, height: 10 },
+      item('Haogin Louvum, 55', 304, 519, 120, 10)
+    ]);
+    expect(lines).toHaveLength(1);
+    expect(lines[0]!.text).toBe('Victim\tHaogin Louvum, 55');
+  });
+
   it('builds paragraphs and detects headings', () => {
     const page = reconstructPage(0, 595, 842, [
       item('Big Heading', 72, 760, 140, 24),
