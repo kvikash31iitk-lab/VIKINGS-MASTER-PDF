@@ -222,7 +222,11 @@ export function registerBuiltInCommands(): void {
       label: 'Reading Mode',
       shortcut: 'Ctrl+H',
       when: needsDoc,
-      run: () => useAppStore.getState().setReadingMode(!useAppStore.getState().readingMode)
+      run: () => {
+        const next = !useAppStore.getState().readingMode;
+        useAppStore.getState().setReadingMode(next);
+        if (next) toast.info('Reading Mode', 'Press Escape or Ctrl+H to exit');
+      }
     },
     ...(['continuous', 'single', 'facing', 'book'] as ViewMode[]).map((mode) => ({
       id: `view.mode.${mode}`,

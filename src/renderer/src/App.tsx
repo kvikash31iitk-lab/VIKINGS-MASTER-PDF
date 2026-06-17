@@ -15,7 +15,7 @@ import { FileDropZone } from './components/common/FileDropZone';
 import { useAppStore } from './stores/app-store';
 import { useDocumentsStore, useActiveDoc } from './stores/documents-store';
 import { useSettingsStore } from './stores/settings-store';
-import { useUpdateStore, useBatchStore, useToastStore, toast } from './stores/ui-stores';
+import { useUpdateStore, useBatchStore, useToastStore, useDialogStore, toast } from './stores/ui-stores';
 import { registerBuiltInCommands } from './modules/register-commands';
 import { installKeyboardShortcuts } from './services/command-registry';
 import { documentService } from './services/document-service';
@@ -84,6 +84,24 @@ export default function App() {
       shortcutsDispose();
       for (const unsub of unsubs) unsub();
     };
+  }, []);
+
+  // Global Escape → exit Reading Mode. While a dialog or the command palette is
+  // open they own Escape (to dismiss themselves first), so we defer to them and
+  // only act once the chrome-hidden reading view is the frontmost surface.
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent): void => {
+      if (e.key !== 'Escape') return;
+      const appStore = useAppStore.getState();
+      const hasOpenDialog = useDialogStore.getState().open !== null;
+      if (appStore.readingMode && !hasOpenDialog && !appStore.commandPaletteOpen) {
+        appStore.setReadingMode(false);
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    };
+    window.addEventListener('keydown', onKeyDown, { capture: true });
+    return () => window.removeEventListener('keydown', onKeyDown, { capture: true });
   }, []);
 
   return (

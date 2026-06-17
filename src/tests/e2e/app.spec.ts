@@ -78,6 +78,19 @@ test('creates a blank PDF from the template picker and views it', async () => {
   await expect(page.locator('[data-page-index="0"]')).toBeVisible({ timeout: 20000 });
 });
 
+test('reading mode hides chrome; Escape and the helper toast guide the way out', async () => {
+  // A document remains open from the previous test — Reading Mode requires one.
+  await page.keyboard.press('Control+H');
+  // Root gains the reading-mode class (chrome children become display:none).
+  await expect(page.locator('.vk-reading-mode')).toBeVisible();
+  // A helper toast tells the user how to leave.
+  await expect(page.locator('text=Press Escape or Ctrl+H to exit')).toBeVisible();
+  // Escape exits reading mode and restores the chrome.
+  await page.keyboard.press('Escape');
+  await expect(page.locator('.vk-reading-mode')).toHaveCount(0);
+  await expect(page.getByRole('tab', { name: 'Home', exact: true })).toBeVisible();
+});
+
 test('settings dialog opens with categories', async () => {
   await page.keyboard.press('Control+,');
   await expect(page.getByRole('dialog', { name: 'Settings' })).toBeVisible();
