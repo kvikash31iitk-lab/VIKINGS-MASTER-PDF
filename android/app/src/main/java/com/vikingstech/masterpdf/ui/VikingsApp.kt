@@ -21,7 +21,7 @@ import kotlinx.coroutines.flow.stateIn
 import javax.inject.Inject
 
 @Composable
-fun VikingsApp(viewModel: AppShellViewModel = hiltViewModel()) {
+fun VikingsApp(initialUri: String? = null, viewModel: AppShellViewModel = hiltViewModel()) {
     val settings by viewModel.settings.collectAsStateWithLifecycle()
     VikingsMasterPdfTheme(
         themeMode = settings.themeMode,
@@ -29,7 +29,7 @@ fun VikingsApp(viewModel: AppShellViewModel = hiltViewModel()) {
         dynamicColor = settings.dynamicColor
     ) {
         Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-            VikingsNavHost()
+            VikingsNavHost(initialUri = initialUri)
         }
     }
 }

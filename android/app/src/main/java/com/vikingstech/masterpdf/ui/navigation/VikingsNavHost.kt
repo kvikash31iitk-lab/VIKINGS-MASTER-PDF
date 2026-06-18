@@ -1,6 +1,7 @@
 package com.vikingstech.masterpdf.ui.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -14,7 +15,24 @@ import com.vikingstech.masterpdf.ui.tools.ToolsScreen
 import com.vikingstech.masterpdf.ui.viewer.ViewerScreen
 
 @Composable
-fun VikingsNavHost(navController: NavHostController = rememberNavController()) {
+fun VikingsNavHost(
+    navController: NavHostController = rememberNavController(),
+    /** URI from an ACTION_VIEW intent (e.g. "Open with…" from another app). */
+    initialUri: String? = null
+) {
+    // If the activity was launched by an external app with a PDF URI, navigate
+    // directly to the viewer. LaunchedEffect(initialUri) re-runs whenever
+    // onNewIntent delivers a new URI (the mutableState in MainActivity triggers
+    // recomposition).
+    LaunchedEffect(initialUri) {
+        if (!initialUri.isNullOrBlank()) {
+            navController.navigate(Routes.viewer(initialUri)) {
+                // Keep Home in the back-stack so the user can press Back to get there.
+                launchSingleTop = true
+            }
+        }
+    }
+
     NavHost(navController = navController, startDestination = Routes.HOME) {
         composable(Routes.HOME) {
             HomeScreen(
@@ -67,3 +85,4 @@ fun VikingsNavHost(navController: NavHostController = rememberNavController()) {
         }
     }
 }
+
