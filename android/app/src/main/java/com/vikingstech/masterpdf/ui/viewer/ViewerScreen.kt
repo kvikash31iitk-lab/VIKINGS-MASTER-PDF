@@ -17,6 +17,7 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.DrawOutlined
 import androidx.compose.material.icons.filled.ErrorOutline
+import androidx.compose.material.icons.filled.LocalOffer
 import androidx.compose.material.icons.filled.TextFields
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -37,6 +38,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.vikingstech.masterpdf.R
 import com.vikingstech.masterpdf.ui.components.EmptyState
+import com.vikingstech.masterpdf.ui.components.StampDesignerDialog
 import com.vikingstech.masterpdf.ui.components.VikingsLoadingBar
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -88,6 +90,13 @@ fun ViewerScreen(
                                 tint = if (state.showFormPanel) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
+                    }
+                    IconButton(onClick = { viewModel.toggleStampDesigner() }) {
+                        Icon(
+                            Icons.Filled.LocalOffer,
+                            contentDescription = "Stamps",
+                            tint = if (state.showStampDesigner) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
                     IconButton(onClick = { viewModel.toggleDrawingMode() }) {
                         Icon(
@@ -194,6 +203,13 @@ fun ViewerScreen(
                 }
             }
         }
+    }
+
+    if (state.showStampDesigner) {
+        StampDesignerDialog(
+            onDismiss = { viewModel.toggleStampDesigner() },
+            onSave = { stamp -> viewModel.saveNewStamp(stamp) }
+        )
     }
 }
 

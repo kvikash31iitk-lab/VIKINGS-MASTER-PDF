@@ -6,16 +6,20 @@ import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.vikingstech.masterpdf.domain.model.CustomStamp
 import com.vikingstech.masterpdf.domain.model.DrawingStroke
 import com.vikingstech.masterpdf.domain.model.InkAnnotation
+import com.vikingstech.masterpdf.domain.model.StampPlacement
 import com.vikingstech.masterpdf.domain.model.StrokePoint
 import com.vikingstech.masterpdf.domain.usecase.CloseDocumentUseCase
 import com.vikingstech.masterpdf.domain.usecase.CommitInkAnnotationUseCase
 import com.vikingstech.masterpdf.domain.usecase.FillFormFieldUseCase
+import com.vikingstech.masterpdf.domain.usecase.GetCustomStampsUseCase
 import com.vikingstech.masterpdf.domain.usecase.GetFormFieldsUseCase
 import com.vikingstech.masterpdf.domain.usecase.GetPageInfoUseCase
 import com.vikingstech.masterpdf.domain.usecase.OpenDocumentUseCase
 import com.vikingstech.masterpdf.domain.usecase.RenderPageUseCase
+import com.vikingstech.masterpdf.domain.usecase.SaveCustomStampUseCase
 import com.vikingstech.masterpdf.domain.util.Resource
 import com.vikingstech.masterpdf.ui.navigation.Routes
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -35,7 +39,9 @@ class ViewerViewModel @Inject constructor(
     private val closeDocument: CloseDocumentUseCase,
     private val commitInkAnnotation: CommitInkAnnotationUseCase,
     private val getFormFields: GetFormFieldsUseCase,
-    private val fillFormField: FillFormFieldUseCase
+    private val fillFormField: FillFormFieldUseCase,
+    private val getCustomStamps: GetCustomStampsUseCase,
+    private val saveCustomStamp: SaveCustomStampUseCase
 ) : ViewModel() {
 
     private val sourceUri: String =
@@ -48,6 +54,13 @@ class ViewerViewModel @Inject constructor(
 
     init {
         load()
+        observeStamps()
+    }
+
+    private fun observeStamps() = viewModelScope.launch {
+        getCustomStamps().collect { stamps ->
+            _state.update { it.copy(availableStamps = stamps) }
+        }
     }
 
     private fun load() = viewModelScope.launch {
@@ -156,6 +169,30 @@ class ViewerViewModel @Inject constructor(
         val value = _state.value.formFieldValues[fieldName] ?: ""
         documentId?.let { id ->
             fillFormField(id, fieldName, value)
+        }
+    }
+
+    fun toggleStampDesigner() {
+        _state.update { it.copy(showStampDesigner = !it.showStampDesigner) }
+    }
+
+    fun saveNewStamp(stamp: CustomStamp) = viewModelScope.launch {
+        saveCustomStamp(stamp)
+    }
+
+    fun selectStampForPlacement(stampId: String?) {
+        _state.update { it.copy(selectedStampForPlacement = stampId) }
+    }
+
+    fun addStampPlacement(placement: StampPlacement) {
+        _state.update { state ->
+            state.copy(stampPlacements = state.stampPlacements + placement)
+        }
+    }
+
+    fun removeStampPlacement(index: Int) {
+        _state.update { state ->
+            state.copy(stampPlacements = state.stampPlacements.filterIndexed { i, _ -> i != index })
         }
     }
 

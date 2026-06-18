@@ -1,10 +1,12 @@
 package com.vikingstech.masterpdf.ui.viewer
 
 import androidx.compose.ui.graphics.Color
+import com.vikingstech.masterpdf.domain.model.CustomStamp
 import com.vikingstech.masterpdf.domain.model.DrawingStroke
 import com.vikingstech.masterpdf.domain.model.PdfDocument
 import com.vikingstech.masterpdf.domain.model.PdfFormField
 import com.vikingstech.masterpdf.domain.model.PdfPageInfo
+import com.vikingstech.masterpdf.domain.model.StampPlacement
 import com.vikingstech.masterpdf.domain.model.StrokePoint
 
 data class ViewerUiState(
@@ -19,5 +21,9 @@ data class ViewerUiState(
     val strokeWidth: Float = 2f,
     val formFields: List<PdfFormField> = emptyList(),
     val showFormPanel: Boolean = false,
-    val formFieldValues: Map<String, String> = emptyMap()
+    val formFieldValues: Map<String, String> = emptyMap(),
+    val availableStamps: List<CustomStamp> = emptyList(),
+    val showStampDesigner: Boolean = false,
+    val selectedStampForPlacement: String? = null,
+    val stampPlacements: List<StampPlacement> = emptyList()
 )
