@@ -76,7 +76,7 @@ class ViewerViewModel @Inject constructor(
 ) : ViewModel() {
 
     private val sourceUri: String =
-        Uri.decode(checkNotNull(savedStateHandle.get<String>(Routes.ARG_URI)))
+        checkNotNull(savedStateHandle.get<String>(Routes.ARG_URI))
 
     private val startPage: Int = savedStateHandle.get<Int>(Routes.ARG_START_PAGE) ?: 0
 

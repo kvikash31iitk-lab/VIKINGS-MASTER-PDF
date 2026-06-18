@@ -43,7 +43,7 @@ class ToolsViewModel @Inject constructor(
 ) : ViewModel() {
 
     private val sourceUri: String? =
-        savedStateHandle.get<String>(Routes.ARG_URI)?.let { Uri.decode(it) }
+        savedStateHandle.get<String>(Routes.ARG_URI)
 
     private val _state = MutableStateFlow(ToolsUiState())
     val state: StateFlow<ToolsUiState> = _state.asStateFlow()
