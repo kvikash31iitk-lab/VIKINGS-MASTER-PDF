@@ -5,6 +5,7 @@ import android.graphics.Bitmap
 import android.net.Uri
 import android.os.ParcelFileDescriptor
 import android.provider.OpenableColumns
+import java.io.FileOutputStream
 import com.vikingstech.masterpdf.data.pdf.FormFieldExtractor
 import com.vikingstech.masterpdf.data.pdf.PdfBoxManipulator
 import com.vikingstech.masterpdf.data.pdf.PdfRendererViewport
@@ -86,6 +87,13 @@ class DocumentRepositoryImpl @Inject constructor(
                 .getOrElse { Resource.Error(it.message ?: "Text extraction failed", it) }
         }
 
+    override suspend fun extractAllText(documentId: String): Resource<String> =
+        withContext(io) {
+            val doc = open[documentId] ?: return@withContext Resource.Error("Document is not open")
+            runCatching { Resource.Success(TextExtractor.extractAll(ensureWorkingFile(doc))) }
+                .getOrElse { Resource.Error(it.message ?: "Text extraction failed", it) }
+        }
+
     override suspend fun reorderPages(documentId: String, newOrder: List<Int>): Resource<Unit> =
         mutate(documentId) { src, dst -> PdfBoxManipulator.reorderPages(src, dst, newOrder) }
 
@@ -133,6 +141,74 @@ class DocumentRepositoryImpl @Inject constructor(
     override suspend fun fillFormField(documentId: String, fieldName: String, value: String): Resource<Unit> =
         mutate(documentId) { src, dst -> PdfBoxManipulator.fillFormField(src, dst, fieldName, value) }
 
+    override suspend fun addImageAnnotation(
+        documentId: String,
+        pageIndex: Int,
+        imageBytes: ByteArray,
+        xPts: Float,
+        yPts: Float,
+        widthPts: Float,
+        heightPts: Float
+    ): Resource<Unit> = mutate(documentId) { src, dst ->
+        PdfBoxManipulator.addImageAnnotation(src, dst, pageIndex, imageBytes, xPts, yPts, widthPts, heightPts)
+    }
+
+    override suspend fun compress(
+        documentId: String,
+        quality: Float,
+        destinationUri: String
+    ): Resource<String> = withContext(io) {
+        val doc = open[documentId] ?: return@withContext Resource.Error("Document is not open")
+        runCatching {
+            val src = ensureWorkingFile(doc)
+            val tmp = File(context.cacheDir, "compress_${System.nanoTime()}.pdf")
+            PdfBoxManipulator.compressImages(src, tmp, quality)
+            copyFileToUri(tmp, destinationUri)
+            tmp.delete()
+            Resource.Success(destinationUri)
+        }.getOrElse { Resource.Error(it.message ?: "Compression failed", it) }
+    }
+
+    override suspend fun mergeDocuments(
+        sourceUris: List<String>,
+        destinationUri: String
+    ): Resource<String> = withContext(io) {
+        runCatching {
+            require(sourceUris.isNotEmpty()) { "Pick at least one PDF to merge" }
+            val temps = sourceUris.mapIndexed { i, uri ->
+                val tmp = File(context.cacheDir, "merge_src_${System.nanoTime()}_$i.pdf")
+                context.contentResolver.openInputStream(Uri.parse(uri))?.use { input ->
+                    tmp.outputStream().use { input.copyTo(it) }
+                } ?: error("Cannot read a selected document")
+                tmp
+            }
+            val merged = File(context.cacheDir, "merged_${System.nanoTime()}.pdf")
+            try {
+                PdfBoxManipulator.mergeDocuments(temps, merged)
+                copyFileToUri(merged, destinationUri)
+            } finally {
+                temps.forEach { it.delete() }
+                merged.delete()
+            }
+            Resource.Success(destinationUri)
+        }.getOrElse { Resource.Error(it.message ?: "Merge failed", it) }
+    }
+
+    override suspend fun generateThumbnail(documentId: String, widthPx: Int): Resource<String> =
+        withContext(io) {
+            val vp = open[documentId]?.viewport
+                ?: return@withContext Resource.Error("Document is not open")
+            runCatching {
+                val bitmap = vp.renderPage(0, widthPx)
+                val dir = File(context.cacheDir, "thumbnails").apply { mkdirs() }
+                val file = File(dir, "${abs(documentId.hashCode())}.jpg")
+                FileOutputStream(file).use { out ->
+                    bitmap.compress(Bitmap.CompressFormat.JPEG, 70, out)
+                }
+                Resource.Success(file.absolutePath)
+            }.getOrElse { Resource.Error(it.message ?: "Thumbnail failed", it) }
+        }
+
     override fun close(documentId: String) {
         open.remove(documentId)?.let { doc ->
             doc.viewport.close()
@@ -160,6 +236,13 @@ class DocumentRepositoryImpl @Inject constructor(
             doc.workingFile = dst
             Resource.Success(Unit)
         }.getOrElse { Resource.Error(it.message ?: "Edit failed", it) }
+    }
+
+    /** Stream a local file into a SAF/content destination URI. */
+    private fun copyFileToUri(file: File, destinationUri: String) {
+        val out = context.contentResolver.openOutputStream(Uri.parse(destinationUri))
+            ?: error("Cannot open destination for writing")
+        out.use { os -> file.inputStream().use { it.copyTo(os) } }
     }
 
     /** Materialise the source into a private cache file PdfBox can read/write. */

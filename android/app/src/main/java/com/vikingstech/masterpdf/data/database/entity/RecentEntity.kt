@@ -11,5 +11,7 @@ data class RecentEntity(
     val sizeBytes: Long,
     val lastPageIndex: Int = 0,
     val lastOpenedAt: Long,
-    val isPinned: Boolean = false
+    val isPinned: Boolean = false,
+    /** Absolute path to a cached page-0 thumbnail (nullable; added in schema v2). */
+    val thumbnailUri: String? = null
 )

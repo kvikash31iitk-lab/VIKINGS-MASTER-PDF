@@ -2,6 +2,8 @@ package com.vikingstech.masterpdf.data.database
 
 import androidx.room.Database
 import androidx.room.RoomDatabase
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 import com.vikingstech.masterpdf.data.database.dao.BookmarkDao
 import com.vikingstech.masterpdf.data.database.dao.CustomStampDao
 import com.vikingstech.masterpdf.data.database.dao.RecentDao
@@ -24,7 +26,7 @@ import com.vikingstech.masterpdf.data.database.entity.StampEntity
         BookmarkEntity::class,
         CustomStampEntity::class
     ],
-    version = 1,
+    version = 2,
     exportSchema = false
 )
 abstract class MasterPdfDatabase : RoomDatabase() {
@@ -37,5 +39,16 @@ abstract class MasterPdfDatabase : RoomDatabase() {
 
     companion object {
         const val NAME = "vikings_master_pdf.db"
+
+        /**
+         * v1 → v2: adds the recents thumbnail column. The custom_stamps table was
+         * already part of the v1 entity set, so it is intentionally not (re)created
+         * here — only the new column is introduced.
+         */
+        val MIGRATION_1_2 = object : Migration(1, 2) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE recents ADD COLUMN thumbnailUri TEXT")
+            }
+        }
     }
 }

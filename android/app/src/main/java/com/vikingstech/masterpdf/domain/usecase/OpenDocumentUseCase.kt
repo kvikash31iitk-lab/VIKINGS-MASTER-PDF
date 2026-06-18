@@ -24,6 +24,10 @@ class OpenDocumentUseCase @Inject constructor(
                     sizeBytes = doc.sizeBytes
                 )
             )
+            // Best-effort page-0 thumbnail; never fails the open if it can't render.
+            (documentRepository.generateThumbnail(doc.id) as? Resource.Success)?.let { thumb ->
+                recentsRepository.updateThumbnail(doc.uri, thumb.data)
+            }
         }
         return result
     }

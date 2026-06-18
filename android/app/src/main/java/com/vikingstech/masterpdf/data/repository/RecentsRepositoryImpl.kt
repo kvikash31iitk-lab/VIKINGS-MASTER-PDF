@@ -31,6 +31,9 @@ class RecentsRepositoryImpl @Inject constructor(
     override suspend fun updateLastPage(uri: String, pageIndex: Int) =
         recentDao.updateLastPage(uri, pageIndex)
 
+    override suspend fun updateThumbnail(uri: String, path: String?) =
+        recentDao.updateThumbnail(uri, path)
+
     override suspend fun remove(uri: String) = recentDao.remove(uri)
 
     override suspend fun clear() = recentDao.clear()

@@ -25,7 +25,8 @@ fun RecentEntity.toDomain() = RecentDocument(
     sizeBytes = sizeBytes,
     lastPageIndex = lastPageIndex,
     lastOpenedAt = lastOpenedAt,
-    isPinned = isPinned
+    isPinned = isPinned,
+    thumbnailUri = thumbnailUri
 )
 
 // ── Settings ── (defensive enum parsing so a bad row can't crash startup)

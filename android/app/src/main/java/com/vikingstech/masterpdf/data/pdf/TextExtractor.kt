@@ -18,4 +18,10 @@ object TextExtractor {
             }
             stripper.getText(doc).trim()
         }
+
+    /** Extracts the embedded text layer of the whole document in page order. */
+    fun extractAll(file: File): String =
+        PDDocument.load(file, MemoryUsageSetting.setupTempFileOnly()).use { doc ->
+            PDFTextStripper().getText(doc).trim()
+        }
 }

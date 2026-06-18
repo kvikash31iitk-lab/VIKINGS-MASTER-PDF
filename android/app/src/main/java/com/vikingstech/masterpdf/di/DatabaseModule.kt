@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.room.Room
 import com.vikingstech.masterpdf.data.database.MasterPdfDatabase
 import com.vikingstech.masterpdf.data.database.dao.BookmarkDao
+import com.vikingstech.masterpdf.data.database.dao.CustomStampDao
 import com.vikingstech.masterpdf.data.database.dao.RecentDao
 import com.vikingstech.masterpdf.data.database.dao.SettingsDao
 import com.vikingstech.masterpdf.data.database.dao.SignatureDao
@@ -23,7 +24,7 @@ object DatabaseModule {
     @Singleton
     fun provideDatabase(@ApplicationContext context: Context): MasterPdfDatabase =
         Room.databaseBuilder(context, MasterPdfDatabase::class.java, MasterPdfDatabase.NAME)
-            .fallbackToDestructiveMigration()
+            .addMigrations(MasterPdfDatabase.MIGRATION_1_2)
             .build()
 
     @Provides fun provideRecentDao(db: MasterPdfDatabase): RecentDao = db.recentDao()
@@ -31,4 +32,5 @@ object DatabaseModule {
     @Provides fun provideStampDao(db: MasterPdfDatabase): StampDao = db.stampDao()
     @Provides fun provideSignatureDao(db: MasterPdfDatabase): SignatureDao = db.signatureDao()
     @Provides fun provideBookmarkDao(db: MasterPdfDatabase): BookmarkDao = db.bookmarkDao()
+    @Provides fun provideCustomStampDao(db: MasterPdfDatabase): CustomStampDao = db.customStampDao()
 }

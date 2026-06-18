@@ -39,6 +39,9 @@ interface RecentDao {
     @Query("UPDATE recents SET lastPageIndex = :pageIndex WHERE uri = :uri")
     suspend fun updateLastPage(uri: String, pageIndex: Int)
 
+    @Query("UPDATE recents SET thumbnailUri = :path WHERE uri = :uri")
+    suspend fun updateThumbnail(uri: String, path: String?)
+
     @Query("DELETE FROM recents WHERE uri = :uri")
     suspend fun remove(uri: String)
 

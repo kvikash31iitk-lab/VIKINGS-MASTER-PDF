@@ -8,6 +8,7 @@ interface RecentsRepository {
     suspend fun upsert(recent: RecentDocument)
     suspend fun setPinned(uri: String, pinned: Boolean)
     suspend fun updateLastPage(uri: String, pageIndex: Int)
+    suspend fun updateThumbnail(uri: String, path: String?)
     suspend fun remove(uri: String)
     suspend fun clear()
 }

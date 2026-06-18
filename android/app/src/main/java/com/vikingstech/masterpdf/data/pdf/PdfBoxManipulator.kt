@@ -1,11 +1,19 @@
 package com.vikingstech.masterpdf.data.pdf
 
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import androidx.compose.ui.graphics.toArgb
+import com.tom_roush.pdfbox.cos.COSName
 import com.tom_roush.pdfbox.io.MemoryUsageSetting
+import com.tom_roush.pdfbox.multipdf.PDFMergerUtility
 import com.tom_roush.pdfbox.pdmodel.PDDocument
+import com.tom_roush.pdfbox.pdmodel.PDPageContentStream
 import com.tom_roush.pdfbox.pdmodel.common.PDRectangle
 import com.tom_roush.pdfbox.pdmodel.graphics.color.PDColor
 import com.tom_roush.pdfbox.pdmodel.graphics.color.PDDeviceRGB
+import com.tom_roush.pdfbox.pdmodel.graphics.image.JPEGFactory
+import com.tom_roush.pdfbox.pdmodel.graphics.image.LosslessFactory
+import com.tom_roush.pdfbox.pdmodel.graphics.image.PDImageXObject
 import com.tom_roush.pdfbox.pdmodel.interactive.annotation.PDAnnotationInk
 import com.vikingstech.masterpdf.domain.model.InkAnnotation
 import java.io.File
@@ -132,6 +140,80 @@ object PdfBoxManipulator {
             }
 
             page.annotations.add(inkAnnotation)
+            doc.save(destination)
+        }
+    }
+
+    /**
+     * Merges [sources] (in order) into a single [destination] PDF. Uses a
+     * temp-file-only memory setting so very large inputs never sit fully on-heap.
+     */
+    fun mergeDocuments(sources: List<File>, destination: File) {
+        require(sources.isNotEmpty()) { "At least one source document is required" }
+        val merger = PDFMergerUtility().apply {
+            destinationFileName = destination.absolutePath
+            sources.forEach { addSource(it) }
+        }
+        merger.mergeDocuments(MemoryUsageSetting.setupTempFileOnly())
+    }
+
+    /**
+     * Re-encodes every embedded raster image at the given JPEG [quality] (0..1),
+     * shrinking the file. Each image is handled defensively: a failure on one
+     * image is skipped rather than aborting the whole operation.
+     */
+    fun compressImages(source: File, destination: File, quality: Float) {
+        val q = quality.coerceIn(0.1f, 1f)
+        PDDocument.load(source, MemoryUsageSetting.setupTempFileOnly()).use { doc ->
+            for (page in doc.pages) {
+                val resources = page.resources ?: continue
+                // Snapshot names first; we mutate the resource dictionary in the loop.
+                val names = resources.xObjectNames?.toList() ?: continue
+                for (name in names) {
+                    runCatching {
+                        val xObject = resources.getXObject(name)
+                        if (xObject is PDImageXObject) {
+                            val bitmap: Bitmap = xObject.image ?: return@runCatching
+                            val recompressed = JPEGFactory.createFromImage(doc, bitmap, q)
+                            resources.put(name as COSName, recompressed)
+                        }
+                    }
+                }
+            }
+            doc.save(destination)
+        }
+    }
+
+    /**
+     * Stamps a raster image (e.g. a signature PNG) onto [pageIndex] at the given
+     * rectangle, expressed in PDF user-space points with a bottom-left origin.
+     * Transparency is preserved via the lossless image factory.
+     */
+    fun addImageAnnotation(
+        source: File,
+        destination: File,
+        pageIndex: Int,
+        imageBytes: ByteArray,
+        xPts: Float,
+        yPts: Float,
+        widthPts: Float,
+        heightPts: Float
+    ) {
+        PDDocument.load(source, MemoryUsageSetting.setupTempFileOnly()).use { doc ->
+            if (pageIndex !in 0 until doc.numberOfPages) return@use
+            val page = doc.getPage(pageIndex)
+            val bitmap = BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
+                ?: return@use
+            val image: PDImageXObject = LosslessFactory.createFromImage(doc, bitmap)
+            PDPageContentStream(
+                doc,
+                page,
+                PDPageContentStream.AppendMode.APPEND,
+                true,
+                true
+            ).use { stream ->
+                stream.drawImage(image, xPts, yPts, widthPts, heightPts)
+            }
             doc.save(destination)
         }
     }
