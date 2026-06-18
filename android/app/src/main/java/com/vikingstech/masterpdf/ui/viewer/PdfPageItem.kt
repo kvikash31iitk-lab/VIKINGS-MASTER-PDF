@@ -20,7 +20,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
+import com.vikingstech.masterpdf.domain.model.DrawingStroke
 import com.vikingstech.masterpdf.domain.model.PdfPageInfo
+import com.vikingstech.masterpdf.domain.model.StrokePoint
 
 /**
  * Renders one page on demand. A correctly-proportioned placeholder occupies the
@@ -31,6 +33,13 @@ import com.vikingstech.masterpdf.domain.model.PdfPageInfo
 fun PdfPageItem(
     page: PdfPageInfo,
     render: suspend (pageIndex: Int, targetWidthPx: Int) -> Bitmap?,
+    strokes: List<DrawingStroke> = emptyList(),
+    currentPath: List<StrokePoint> = emptyList(),
+    strokeColor: Color = Color.Black,
+    strokeWidth: Float = 2f,
+    isDrawingEnabled: Boolean = false,
+    onPointAdded: (StrokePoint) -> Unit = {},
+    onStrokeFinished: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val density = LocalDensity.current
@@ -58,6 +67,19 @@ fun PdfPageItem(
             )
         } else {
             CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+        }
+
+        if (isDrawingEnabled) {
+            DrawingCanvasOverlay(
+                strokes = strokes,
+                currentPath = currentPath,
+                strokeColor = strokeColor,
+                strokeWidth = strokeWidth,
+                isDrawingEnabled = isDrawingEnabled,
+                onPointAdded = onPointAdded,
+                onStrokeFinished = onStrokeFinished,
+                modifier = Modifier.fillMaxWidth()
+            )
         }
     }
 }

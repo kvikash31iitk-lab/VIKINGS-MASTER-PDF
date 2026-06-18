@@ -1,20 +1,28 @@
 package com.vikingstech.masterpdf.ui.viewer
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.DeleteOutline
+import androidx.compose.material.icons.filled.DrawOutlined
 import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -62,15 +70,59 @@ fun ViewerScreen(
                     }
                 },
                 actions = {
-                    state.document?.let { doc ->
-                        Text(
-                            text = "${currentPage()}/${doc.pageCount}",
-                            style = MaterialTheme.typography.labelLarge,
-                            modifier = Modifier.padding(end = 16.dp)
+                    if (!state.isDrawingMode) {
+                        state.document?.let { doc ->
+                            Text(
+                                text = "${currentPage()}/${doc.pageCount}",
+                                style = MaterialTheme.typography.labelLarge,
+                                modifier = Modifier.padding(end = 16.dp)
+                            )
+                        }
+                    }
+                    IconButton(onClick = { viewModel.toggleDrawingMode() }) {
+                        Icon(
+                            Icons.Filled.DrawOutlined,
+                            contentDescription = "Draw",
+                            tint = if (state.isDrawingMode) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
             )
+        },
+        bottomBar = {
+            if (state.isDrawingMode) {
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    color = MaterialTheme.colorScheme.surface,
+                    tonalElevation = 8.dp
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        IconButton(
+                            onClick = { viewModel.clearStrokes() },
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Icon(Icons.Filled.DeleteOutline, contentDescription = "Clear")
+                        }
+                        IconButton(
+                            onClick = { viewModel.commitStrokes() },
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Icon(Icons.Filled.Check, contentDescription = "Commit")
+                        }
+                        IconButton(
+                            onClick = { viewModel.toggleDrawingMode() },
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Icon(Icons.Filled.Close, contentDescription = "Close")
+                        }
+                    }
+                }
+            }
         }
     ) { padding ->
         when {
@@ -93,7 +145,17 @@ fun ViewerScreen(
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 items(state.pages, key = { it.index }) { page ->
-                    PdfPageItem(page = page, render = viewModel::renderPage)
+                    PdfPageItem(
+                        page = page,
+                        render = viewModel::renderPage,
+                        strokes = state.currentPageStrokes,
+                        currentPath = state.currentStrokePath,
+                        strokeColor = state.strokeColor,
+                        strokeWidth = state.strokeWidth,
+                        isDrawingEnabled = state.isDrawingMode,
+                        onPointAdded = { viewModel.addPointToCurrentStroke(it) },
+                        onStrokeFinished = { viewModel.finishStroke() }
+                    )
                 }
             }
         }

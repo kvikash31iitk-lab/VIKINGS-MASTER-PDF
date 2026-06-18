@@ -9,6 +9,7 @@ import com.vikingstech.masterpdf.data.pdf.PdfBoxManipulator
 import com.vikingstech.masterpdf.data.pdf.PdfRendererViewport
 import com.vikingstech.masterpdf.data.pdf.TextExtractor
 import com.vikingstech.masterpdf.di.IoDispatcher
+import com.vikingstech.masterpdf.domain.model.InkAnnotation
 import com.vikingstech.masterpdf.domain.model.PdfDocument
 import com.vikingstech.masterpdf.domain.model.PdfPageInfo
 import com.vikingstech.masterpdf.domain.repository.DocumentRepository
@@ -114,6 +115,9 @@ class DocumentRepositoryImpl @Inject constructor(
                 Resource.Success(destinationUri)
             }.getOrElse { Resource.Error(it.message ?: "Save failed", it) }
         }
+
+    override suspend fun addInkAnnotation(documentId: String, annotation: InkAnnotation): Resource<Unit> =
+        mutate(documentId) { src, dst -> PdfBoxManipulator.addInkAnnotation(src, dst, annotation) }
 
     override fun close(documentId: String) {
         open.remove(documentId)?.let { doc ->

@@ -1,6 +1,7 @@
 package com.vikingstech.masterpdf.domain.repository
 
 import android.graphics.Bitmap
+import com.vikingstech.masterpdf.domain.model.InkAnnotation
 import com.vikingstech.masterpdf.domain.model.PdfDocument
 import com.vikingstech.masterpdf.domain.model.PdfPageInfo
 import com.vikingstech.masterpdf.domain.util.Resource
@@ -28,6 +29,8 @@ interface DocumentRepository {
 
     /** Persist the (possibly mutated) document to [destinationUri]; returns it. */
     suspend fun save(documentId: String, destinationUri: String): Resource<String>
+
+    suspend fun addInkAnnotation(documentId: String, annotation: InkAnnotation): Resource<Unit>
 
     fun close(documentId: String)
 }
