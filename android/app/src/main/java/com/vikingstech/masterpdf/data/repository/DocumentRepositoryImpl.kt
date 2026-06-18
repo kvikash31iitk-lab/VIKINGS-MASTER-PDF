@@ -5,12 +5,14 @@ import android.graphics.Bitmap
 import android.net.Uri
 import android.os.ParcelFileDescriptor
 import android.provider.OpenableColumns
+import com.vikingstech.masterpdf.data.pdf.FormFieldExtractor
 import com.vikingstech.masterpdf.data.pdf.PdfBoxManipulator
 import com.vikingstech.masterpdf.data.pdf.PdfRendererViewport
 import com.vikingstech.masterpdf.data.pdf.TextExtractor
 import com.vikingstech.masterpdf.di.IoDispatcher
 import com.vikingstech.masterpdf.domain.model.InkAnnotation
 import com.vikingstech.masterpdf.domain.model.PdfDocument
+import com.vikingstech.masterpdf.domain.model.PdfFormField
 import com.vikingstech.masterpdf.domain.model.PdfPageInfo
 import com.vikingstech.masterpdf.domain.repository.DocumentRepository
 import com.vikingstech.masterpdf.domain.util.Resource
@@ -118,6 +120,18 @@ class DocumentRepositoryImpl @Inject constructor(
 
     override suspend fun addInkAnnotation(documentId: String, annotation: InkAnnotation): Resource<Unit> =
         mutate(documentId) { src, dst -> PdfBoxManipulator.addInkAnnotation(src, dst, annotation) }
+
+    override suspend fun getFormFields(documentId: String): Resource<List<PdfFormField>> =
+        withContext(io) {
+            val doc = open[documentId] ?: return@withContext Resource.Error("Document is not open")
+            runCatching {
+                val fields = FormFieldExtractor.extractFields(ensureWorkingFile(doc))
+                Resource.Success(fields)
+            }.getOrElse { Resource.Error(it.message ?: "Form extraction failed", it) }
+        }
+
+    override suspend fun fillFormField(documentId: String, fieldName: String, value: String): Resource<Unit> =
+        mutate(documentId) { src, dst -> PdfBoxManipulator.fillFormField(src, dst, fieldName, value) }
 
     override fun close(documentId: String) {
         open.remove(documentId)?.let { doc ->

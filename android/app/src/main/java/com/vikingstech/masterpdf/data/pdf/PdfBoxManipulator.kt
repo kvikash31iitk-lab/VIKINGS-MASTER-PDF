@@ -53,6 +53,19 @@ object PdfBoxManipulator {
         }
     }
 
+    fun fillFormField(source: File, destination: File, fieldName: String, value: String) {
+        PDDocument.load(source, MemoryUsageSetting.setupTempFileOnly()).use { doc ->
+            val acroForm = doc.documentCatalog.acroForm
+            if (acroForm != null) {
+                val field = acroForm.getField(fieldName)
+                if (field != null) {
+                    field.value = value
+                }
+            }
+            doc.save(destination)
+        }
+    }
+
     fun addInkAnnotation(source: File, destination: File, annotation: InkAnnotation) {
         PDDocument.load(source, MemoryUsageSetting.setupTempFileOnly()).use { doc ->
             if (annotation.pageIndex !in 0 until doc.numberOfPages) return@use

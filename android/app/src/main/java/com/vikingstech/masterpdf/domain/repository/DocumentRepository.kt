@@ -3,6 +3,7 @@ package com.vikingstech.masterpdf.domain.repository
 import android.graphics.Bitmap
 import com.vikingstech.masterpdf.domain.model.InkAnnotation
 import com.vikingstech.masterpdf.domain.model.PdfDocument
+import com.vikingstech.masterpdf.domain.model.PdfFormField
 import com.vikingstech.masterpdf.domain.model.PdfPageInfo
 import com.vikingstech.masterpdf.domain.util.Resource
 
@@ -31,6 +32,10 @@ interface DocumentRepository {
     suspend fun save(documentId: String, destinationUri: String): Resource<String>
 
     suspend fun addInkAnnotation(documentId: String, annotation: InkAnnotation): Resource<Unit>
+
+    suspend fun getFormFields(documentId: String): Resource<List<PdfFormField>>
+
+    suspend fun fillFormField(documentId: String, fieldName: String, value: String): Resource<Unit>
 
     fun close(documentId: String)
 }

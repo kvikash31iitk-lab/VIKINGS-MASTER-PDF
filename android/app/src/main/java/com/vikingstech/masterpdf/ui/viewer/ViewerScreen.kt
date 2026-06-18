@@ -17,6 +17,7 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.DrawOutlined
 import androidx.compose.material.icons.filled.ErrorOutline
+import androidx.compose.material.icons.filled.TextFields
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -79,6 +80,15 @@ fun ViewerScreen(
                             )
                         }
                     }
+                    if (state.formFields.isNotEmpty()) {
+                        IconButton(onClick = { viewModel.toggleFormPanel() }) {
+                            Icon(
+                                Icons.Filled.TextFields,
+                                contentDescription = "Forms",
+                                tint = if (state.showFormPanel) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
                     IconButton(onClick = { viewModel.toggleDrawingMode() }) {
                         Icon(
                             Icons.Filled.DrawOutlined,
@@ -125,36 +135,61 @@ fun ViewerScreen(
             }
         }
     ) { padding ->
-        when {
-            state.isLoading -> VikingsLoadingBar(
-                modifier = Modifier.fillMaxSize().padding(padding),
-                message = stringResource(R.string.viewer_loading)
-            )
+        Row(modifier = Modifier.fillMaxSize().padding(padding)) {
+            when {
+                state.isLoading -> VikingsLoadingBar(
+                    modifier = Modifier.fillMaxSize(),
+                    message = stringResource(R.string.viewer_loading)
+                )
 
-            state.error != null -> EmptyState(
-                icon = Icons.Filled.ErrorOutline,
-                title = stringResource(R.string.viewer_error),
-                subtitle = state.error,
-                modifier = Modifier.fillMaxSize().padding(padding)
-            )
+                state.error != null -> EmptyState(
+                    icon = Icons.Filled.ErrorOutline,
+                    title = stringResource(R.string.viewer_error),
+                    subtitle = state.error,
+                    modifier = Modifier.fillMaxSize()
+                )
 
-            else -> LazyColumn(
-                state = listState,
-                modifier = Modifier.fillMaxSize().padding(padding),
-                contentPadding = PaddingValues(12.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                items(state.pages, key = { it.index }) { page ->
-                    PdfPageItem(
-                        page = page,
-                        render = viewModel::renderPage,
-                        strokes = state.currentPageStrokes,
-                        currentPath = state.currentStrokePath,
-                        strokeColor = state.strokeColor,
-                        strokeWidth = state.strokeWidth,
-                        isDrawingEnabled = state.isDrawingMode,
-                        onPointAdded = { viewModel.addPointToCurrentStroke(it) },
-                        onStrokeFinished = { viewModel.finishStroke() }
+                else -> LazyColumn(
+                    state = listState,
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxSize(),
+                    contentPadding = PaddingValues(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    items(state.pages, key = { it.index }) { page ->
+                        PdfPageItem(
+                            page = page,
+                            render = viewModel::renderPage,
+                            strokes = state.currentPageStrokes,
+                            currentPath = state.currentStrokePath,
+                            strokeColor = state.strokeColor,
+                            strokeWidth = state.strokeWidth,
+                            isDrawingEnabled = state.isDrawingMode,
+                            onPointAdded = { viewModel.addPointToCurrentStroke(it) },
+                            onStrokeFinished = { viewModel.finishStroke() }
+                        )
+                    }
+                }
+            }
+
+            if (state.showFormPanel && state.formFields.isNotEmpty()) {
+                Surface(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(start = 8.dp),
+                    color = MaterialTheme.colorScheme.surface,
+                    tonalElevation = 4.dp
+                ) {
+                    FormFieldPanel(
+                        fields = state.formFields,
+                        fieldValues = state.formFieldValues,
+                        onFieldValueChanged = { fieldName, value ->
+                            viewModel.updateFormFieldValue(fieldName, value)
+                        },
+                        onFieldSubmitted = { fieldName ->
+                            viewModel.submitFormField(fieldName)
+                        }
                     )
                 }
             }

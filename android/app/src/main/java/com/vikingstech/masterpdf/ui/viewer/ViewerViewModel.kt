@@ -11,6 +11,8 @@ import com.vikingstech.masterpdf.domain.model.InkAnnotation
 import com.vikingstech.masterpdf.domain.model.StrokePoint
 import com.vikingstech.masterpdf.domain.usecase.CloseDocumentUseCase
 import com.vikingstech.masterpdf.domain.usecase.CommitInkAnnotationUseCase
+import com.vikingstech.masterpdf.domain.usecase.FillFormFieldUseCase
+import com.vikingstech.masterpdf.domain.usecase.GetFormFieldsUseCase
 import com.vikingstech.masterpdf.domain.usecase.GetPageInfoUseCase
 import com.vikingstech.masterpdf.domain.usecase.OpenDocumentUseCase
 import com.vikingstech.masterpdf.domain.usecase.RenderPageUseCase
@@ -31,7 +33,9 @@ class ViewerViewModel @Inject constructor(
     private val getPageInfo: GetPageInfoUseCase,
     private val renderPageUseCase: RenderPageUseCase,
     private val closeDocument: CloseDocumentUseCase,
-    private val commitInkAnnotation: CommitInkAnnotationUseCase
+    private val commitInkAnnotation: CommitInkAnnotationUseCase,
+    private val getFormFields: GetFormFieldsUseCase,
+    private val fillFormField: FillFormFieldUseCase
 ) : ViewModel() {
 
     private val sourceUri: String =
@@ -52,8 +56,10 @@ class ViewerViewModel @Inject constructor(
             is Resource.Success -> {
                 documentId = result.data.id
                 val pages = getPageInfo(result.data.id)
+                val fieldsResult = getFormFields(result.data.id)
+                val fields = (fieldsResult as? Resource.Success)?.data ?: emptyList()
                 _state.update {
-                    it.copy(isLoading = false, document = result.data, pages = pages)
+                    it.copy(isLoading = false, document = result.data, pages = pages, formFields = fields)
                 }
             }
             is Resource.Error ->
@@ -133,6 +139,23 @@ class ViewerViewModel @Inject constructor(
             commitInkAnnotation(id, annotation)
             clearStrokes()
             _state.update { it.copy(isDrawingMode = false) }
+        }
+    }
+
+    fun toggleFormPanel() {
+        _state.update { it.copy(showFormPanel = !it.showFormPanel) }
+    }
+
+    fun updateFormFieldValue(fieldName: String, value: String) {
+        _state.update { state ->
+            state.copy(formFieldValues = state.formFieldValues + (fieldName to value))
+        }
+    }
+
+    fun submitFormField(fieldName: String) = viewModelScope.launch {
+        val value = _state.value.formFieldValues[fieldName] ?: ""
+        documentId?.let { id ->
+            fillFormField(id, fieldName, value)
         }
     }
 
