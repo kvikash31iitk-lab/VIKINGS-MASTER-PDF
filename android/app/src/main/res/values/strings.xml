@@ -37,6 +37,11 @@
     <string name="viewer_apply">Apply</string>
     <string name="viewer_clear">Clear</string>
 
+    <!-- Scan -->
+    <string name="scan_title">Scan Document</string>
+    <string name="scan_start">Start scanning</string>
+    <string name="scan_permission_rationale">Camera access is required to scan documents.</string>
+
     <!-- Bookmarks -->
     <string name="bookmarks_title">Bookmarks</string>
     <string name="bookmarks_empty">No bookmarks yet</string>

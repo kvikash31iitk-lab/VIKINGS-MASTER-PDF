@@ -7,7 +7,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import com.vikingstech.masterpdf.domain.model.DrawingStroke
@@ -64,8 +63,7 @@ fun DrawingCanvasOverlay(
                         start = start,
                         end = end,
                         strokeWidth = stroke.strokeWidth,
-                        cap = StrokeCap.Round,
-                        join = StrokeJoin.Round
+                        cap = StrokeCap.Round
                     )
                 }
             }
@@ -80,8 +78,7 @@ fun DrawingCanvasOverlay(
                     start = start,
                     end = end,
                     strokeWidth = strokeWidth,
-                    cap = StrokeCap.Round,
-                    join = StrokeJoin.Round
+                    cap = StrokeCap.Round
                 )
             }
         }

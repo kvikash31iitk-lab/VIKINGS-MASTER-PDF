@@ -33,9 +33,9 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshotStateListOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -67,7 +67,7 @@ fun SignatureCaptureDialog(
     onSelectExisting: (Signature) -> Unit,
     onDismiss: () -> Unit
 ) {
-    val strokes = remember { snapshotStateListOf<List<Offset>>() }
+    val strokes = remember { mutableStateListOf<List<Offset>>() }
     var currentPath by remember { mutableStateOf<List<Offset>>(emptyList()) }
     var canvasSize by remember { mutableStateOf(IntSize.Zero) }
 

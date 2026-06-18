@@ -2,7 +2,7 @@ package com.vikingstech.masterpdf.data.pdf
 
 import com.tom_roush.pdfbox.io.MemoryUsageSetting
 import com.tom_roush.pdfbox.pdmodel.PDDocument
-import com.tom_roush.pdfbox.pdmodel.interactive.form.PDCheckbox
+import com.tom_roush.pdfbox.pdmodel.interactive.form.PDCheckBox
 import com.tom_roush.pdfbox.pdmodel.interactive.form.PDComboBox
 import com.tom_roush.pdfbox.pdmodel.interactive.form.PDField
 import com.tom_roush.pdfbox.pdmodel.interactive.form.PDListBox
@@ -37,7 +37,7 @@ object FormFieldExtractor {
 
         val type = when (field) {
             is PDTextField -> FormFieldType.TEXT
-            is PDCheckbox -> FormFieldType.CHECKBOX
+            is PDCheckBox -> FormFieldType.CHECKBOX
             is PDRadioButton -> FormFieldType.RADIO
             is PDComboBox -> FormFieldType.COMBO_BOX
             is PDListBox -> FormFieldType.LIST_BOX
@@ -50,10 +50,10 @@ object FormFieldExtractor {
         }?.index ?: 0
 
         val value = field.valueAsString ?: ""
-        val defaultValue = (field as? PDTextField)?.defaultValueAsString ?: ""
+        val defaultValue = (field as? PDTextField)?.defaultValue ?: ""
         val options = when (field) {
-            is PDComboBox -> field.optionExportValues.orEmpty()
-            is PDListBox -> field.optionExportValues.orEmpty()
+            is PDComboBox -> field.optionsExportValues.orEmpty()
+            is PDListBox -> field.optionsExportValues.orEmpty()
             else -> emptyList()
         }
 
