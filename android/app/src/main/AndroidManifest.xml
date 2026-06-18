@@ -36,12 +36,14 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
-            <!-- Open PDFs handed in from other apps / the file picker. -->
+            <!-- Open PDFs handed in from other apps / the file picker. These are
+                 content:// and file:// documents, not web links, so we declare the
+                 schemes explicitly (and omit BROWSABLE, which is for web URLs). -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.BROWSABLE" />
-                <data android:mimeType="application/pdf" />
+                <data android:scheme="content" android:mimeType="application/pdf" />
+                <data android:scheme="file" android:mimeType="application/pdf" />
             </intent-filter>
         </activity>
 
