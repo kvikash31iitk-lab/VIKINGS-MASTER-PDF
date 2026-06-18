@@ -1,0 +1,4 @@
+<resources>
+    <!-- Window background (dark). OLED-friendly near-black. -->
+    <color name="viking_window_bg">#0A0A0A</color>
+</resources>

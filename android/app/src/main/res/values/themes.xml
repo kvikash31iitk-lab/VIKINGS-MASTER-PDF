@@ -1,0 +1,19 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!--
+      Compose owns all in-app colour; this XML theme only governs the window
+      chrome (edge-to-edge, transparent system bars) and the pre-Compose splash.
+    -->
+    <style name="Theme.VikingsMasterPDF" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowBackground">@color/viking_window_bg</item>
+        <item name="android:windowLayoutInDisplayCutoutMode" tools:targetApi="o_mr1">shortEdges</item>
+    </style>
+
+    <!-- Cold-start splash (androidx.core:core-splashscreen). -->
+    <style name="Theme.VikingsMasterPDF.Splash" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/viking_splash_bg</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_launcher_foreground</item>
+        <item name="postSplashScreenTheme">@style/Theme.VikingsMasterPDF</item>
+    </style>
+</resources>

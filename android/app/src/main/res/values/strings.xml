@@ -1,0 +1,30 @@
+<resources>
+    <string name="app_name">Vikings Master PDF</string>
+    <string name="app_tagline">Professional PDF Editing Without Limits</string>
+
+    <!-- Home -->
+    <string name="home_recents">Recent</string>
+    <string name="home_templates">Templates</string>
+    <string name="home_empty">No documents yet. Open or scan a PDF to begin.</string>
+    <string name="action_open">Open</string>
+    <string name="action_scan">Scan</string>
+    <string name="action_tools">Tools</string>
+    <string name="action_settings">Settings</string>
+
+    <!-- Viewer -->
+    <string name="viewer_loading">Loading document…</string>
+    <string name="viewer_page_of">Page %1$d of %2$d</string>
+    <string name="viewer_error">Could not open this document.</string>
+
+    <!-- Scan -->
+    <string name="scan_title">Scan Document</string>
+    <string name="scan_start">Start scanning</string>
+    <string name="scan_permission_rationale">Camera access is required to scan documents.</string>
+
+    <!-- Generic -->
+    <string name="cd_back">Back</string>
+    <string name="cd_close">Close</string>
+    <string name="generic_cancel">Cancel</string>
+    <string name="generic_save">Save</string>
+    <string name="generic_retry">Retry</string>
+</resources>
