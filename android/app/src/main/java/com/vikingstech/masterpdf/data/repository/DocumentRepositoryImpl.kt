@@ -268,28 +268,30 @@ class DocumentRepositoryImpl @Inject constructor(
      *     private cache file on first access and open that instead — the copy
      *     is session-scoped and cleaned up when the document is closed.
      */
-    private fun openDescriptor(uri: Uri): ParcelFileDescriptor? = when (uri.scheme) {
-        null, "file" -> ParcelFileDescriptor.open(
-            File(requireNotNull(uri.path)), ParcelFileDescriptor.MODE_READ_ONLY
-        )
-        else -> {
-            // Fast path: persistent grant (ACTION_OPEN_DOCUMENT flow).
-            val pfd = runCatching {
-                context.contentResolver.openFileDescriptor(uri, "r")
-            }.getOrNull()
+    private fun openDescriptor(uri: Uri): ParcelFileDescriptor? {
+        return when (uri.scheme) {
+            null, "file" -> ParcelFileDescriptor.open(
+                File(requireNotNull(uri.path)), ParcelFileDescriptor.MODE_READ_ONLY
+            )
+            else -> {
+                // Fast path: persistent grant (ACTION_OPEN_DOCUMENT flow).
+                val pfd = runCatching {
+                    context.contentResolver.openFileDescriptor(uri, "r")
+                }.getOrNull()
 
-            if (pfd != null) {
-                pfd
-            } else {
-                // Slow path: transient grant (ACTION_VIEW flow) — copy to cache.
-                val cacheFile = File(
-                    context.cacheDir,
-                    "view_${abs(uri.toString().hashCode())}.pdf"
-                )
-                context.contentResolver.openInputStream(uri)?.use { input ->
-                    cacheFile.outputStream().use { input.copyTo(it) }
-                } ?: return null
-                ParcelFileDescriptor.open(cacheFile, ParcelFileDescriptor.MODE_READ_ONLY)
+                if (pfd != null) {
+                    pfd
+                } else {
+                    // Slow path: transient grant (ACTION_VIEW flow) — copy to cache.
+                    val cacheFile = File(
+                        context.cacheDir,
+                        "view_${abs(uri.toString().hashCode())}.pdf"
+                    )
+                    context.contentResolver.openInputStream(uri)?.use { input ->
+                        cacheFile.outputStream().use { input.copyTo(it) }
+                    } ?: return null
+                    ParcelFileDescriptor.open(cacheFile, ParcelFileDescriptor.MODE_READ_ONLY)
+                }
             }
         }
     }
