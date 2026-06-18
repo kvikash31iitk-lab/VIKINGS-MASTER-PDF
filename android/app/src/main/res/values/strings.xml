@@ -6,6 +6,16 @@
     <string name="home_recents">Recent</string>
     <string name="home_templates">Templates</string>
     <string name="home_empty">No documents yet. Open or scan a PDF to begin.</string>
+    <string name="home_search_hint">Search documents</string>
+    <string name="home_no_results">No documents match your search</string>
+    <string name="home_continue_reading">Continue reading</string>
+    <string name="home_continue">Continue</string>
+    <string name="home_page_progress">Page %1$d of %2$d</string>
+    <string name="home_sort_recent">Recent</string>
+    <string name="home_sort_pinned">Pinned</string>
+    <string name="home_sort_largest">Largest</string>
+    <string name="home_sort_smallest">Smallest</string>
+    <string name="home_sort_az">A–Z</string>
     <string name="action_open">Open</string>
     <string name="action_scan">Scan</string>
     <string name="action_tools">Tools</string>
@@ -15,16 +25,86 @@
     <string name="viewer_loading">Loading document…</string>
     <string name="viewer_page_of">Page %1$d of %2$d</string>
     <string name="viewer_error">Could not open this document.</string>
+    <string name="viewer_zoom_reset">Reset zoom</string>
+    <string name="viewer_bookmarks">Bookmarks</string>
+    <string name="viewer_ai">AI assistant</string>
+    <string name="viewer_draw">Draw</string>
+    <string name="viewer_signature">Signature</string>
+    <string name="viewer_stamps">Stamps</string>
+    <string name="viewer_forms">Forms</string>
+    <string name="viewer_tools">Page tools</string>
+    <string name="viewer_more">More actions</string>
+    <string name="viewer_apply">Apply</string>
+    <string name="viewer_clear">Clear</string>
 
-    <!-- Scan -->
-    <string name="scan_title">Scan Document</string>
-    <string name="scan_start">Start scanning</string>
-    <string name="scan_permission_rationale">Camera access is required to scan documents.</string>
+    <!-- Bookmarks -->
+    <string name="bookmarks_title">Bookmarks</string>
+    <string name="bookmarks_empty">No bookmarks yet</string>
+    <string name="bookmarks_add">Add bookmark</string>
+    <string name="bookmarks_label_hint">Label</string>
+    <string name="bookmarks_delete">Delete bookmark</string>
+    <string name="bookmark_page">Page %1$d</string>
+
+    <!-- AI assistant -->
+    <string name="ai_title">AI Assistant</string>
+    <string name="ai_input_hint">Ask about this document…</string>
+    <string name="ai_send">Send</string>
+    <string name="ai_clear">Clear conversation</string>
+    <string name="ai_empty">Start a conversation about this document.</string>
+    <string name="ai_typing">Assistant is typing</string>
+
+    <!-- Signature -->
+    <string name="signature_title">Add signature</string>
+    <string name="signature_clear">Clear</string>
+    <string name="signature_done">Done</string>
+    <string name="signature_saved">Saved signatures</string>
+    <string name="signature_place_hint">Drag to position, then Apply</string>
+    <string name="signature_commit">Apply</string>
+
+    <!-- Tools -->
+    <string name="tools_title">Tools</string>
+    <string name="tools_no_document">Open a document to use page tools.</string>
+    <string name="tools_page_manager">Page Manager</string>
+    <string name="tools_rotate">Rotate Pages</string>
+    <string name="tools_compress">Compress</string>
+    <string name="tools_extract">Extract Text</string>
+    <string name="tools_merge">Merge PDFs</string>
+    <string name="tools_save_as">Save as…</string>
+    <string name="tools_delete">Delete</string>
+    <string name="tools_processing">Working…</string>
+    <string name="tools_quality">Quality</string>
+    <string name="tools_quality_low">Low</string>
+    <string name="tools_quality_balanced">Balanced</string>
+    <string name="tools_quality_high">High</string>
+    <string name="tools_extract_run">Extract</string>
+    <string name="tools_extract_copy">Copy</string>
+    <string name="tools_extract_share">Share</string>
+    <string name="tools_merge_pick">Pick PDFs</string>
+    <string name="tools_merge_run">Merge &amp; Save</string>
+    <string name="tools_rotate_apply">Apply rotation</string>
+    <string name="tools_compress_run">Compress &amp; Save</string>
+    <string name="tools_page_label">Page %1$d</string>
+
+    <!-- Settings -->
+    <string name="settings_appearance">Appearance</string>
+    <string name="settings_ai">AI Assistant</string>
+    <string name="settings_test_connection">Test connection</string>
+    <string name="settings_testing">Testing…</string>
+    <string name="settings_test_ok">Connection OK</string>
+    <string name="settings_test_fail">Connection failed: %1$s</string>
+    <string name="settings_test_no_url">Set an endpoint URL first</string>
 
     <!-- Generic -->
     <string name="cd_back">Back</string>
     <string name="cd_close">Close</string>
+    <string name="cd_pin">Pin</string>
+    <string name="cd_unpin">Unpin</string>
+    <string name="cd_remove">Remove</string>
+    <string name="cd_thumbnail">Document thumbnail</string>
+    <string name="cd_drag_handle">Reorder</string>
     <string name="generic_cancel">Cancel</string>
     <string name="generic_save">Save</string>
+    <string name="generic_add">Add</string>
+    <string name="generic_done">Done</string>
     <string name="generic_retry">Retry</string>
 </resources>

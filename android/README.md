@@ -49,6 +49,19 @@ The viewer targets 500 MB / 1000+ page files without OOM:
   list never shifts as bitmaps stream in.
 - **Off-heap manipulation** — PdfBox loads with a temp-file-only memory setting.
 
+## Editing & productivity features
+
+- **Annotation** — freehand ink, custom text stamps, and hand-drawn signatures
+  committed back into the PDF (PdfBox ink/image annotations).
+- **Forms** — AcroForm field detection with a Compose fill-in panel.
+- **Viewer** — pinch-to-zoom + pan (list scrolling preserved at rest), bookmarks
+  (bottom sheet with add/delete/jump), and a streaming AI assistant panel.
+- **Page tools** — reorder/delete, rotate, image recompression, whole-document
+  text extraction (copy/share), and multi-file merge, each via Storage Access
+  Framework destinations.
+- **Home** — instant search, sort chips, page-0 thumbnails, and a
+  "Continue Reading" hero that restores the last-read page.
+
 ## Building
 
 Requires the **Android SDK** (Android Studio Koala+ or `cmdline-tools`).

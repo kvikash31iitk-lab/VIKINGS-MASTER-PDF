@@ -19,16 +19,26 @@ fun VikingsNavHost(navController: NavHostController = rememberNavController()) {
         composable(Routes.HOME) {
             HomeScreen(
                 onOpenDocument = { uri -> navController.navigate(Routes.viewer(uri)) },
+                onContinueReading = { uri, page -> navController.navigate(Routes.viewer(uri, page)) },
                 onScan = { navController.navigate(Routes.SCAN) },
-                onTools = { navController.navigate(Routes.TOOLS) },
+                onTools = { navController.navigate(Routes.tools()) },
                 onSettings = { navController.navigate(Routes.SETTINGS) }
             )
         }
         composable(
             route = Routes.VIEWER,
-            arguments = listOf(navArgument(Routes.ARG_URI) { type = NavType.StringType })
+            arguments = listOf(
+                navArgument(Routes.ARG_URI) { type = NavType.StringType },
+                navArgument(Routes.ARG_START_PAGE) {
+                    type = NavType.IntType
+                    defaultValue = 0
+                }
+            )
         ) {
-            ViewerScreen(onBack = { navController.popBackStack() })
+            ViewerScreen(
+                onBack = { navController.popBackStack() },
+                onOpenTools = { uri -> navController.navigate(Routes.tools(uri)) }
+            )
         }
         composable(Routes.SCAN) {
             ScanScreen(
@@ -40,7 +50,16 @@ fun VikingsNavHost(navController: NavHostController = rememberNavController()) {
                 }
             )
         }
-        composable(Routes.TOOLS) {
+        composable(
+            route = Routes.TOOLS,
+            arguments = listOf(
+                navArgument(Routes.ARG_URI) {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                }
+            )
+        ) {
             ToolsScreen(onBack = { navController.popBackStack() })
         }
         composable(Routes.SETTINGS) {

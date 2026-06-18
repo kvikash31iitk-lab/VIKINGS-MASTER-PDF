@@ -1,15 +1,17 @@
 package com.vikingstech.masterpdf.ui.settings
 
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -19,11 +21,14 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -40,6 +45,23 @@ fun SettingsScreen(
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val settings by viewModel.settings.collectAsStateWithLifecycle()
+    val isTesting by viewModel.isTesting.collectAsStateWithLifecycle()
+    val snackbar = remember { SnackbarHostState() }
+
+    val msgOk = stringResource(R.string.settings_test_ok)
+    val msgNoUrl = stringResource(R.string.settings_test_no_url)
+    val msgFailFmt = stringResource(R.string.settings_test_fail)
+
+    androidx.compose.runtime.LaunchedEffect(Unit) {
+        viewModel.testResult.collect { result ->
+            val text = when (result) {
+                TestConnectionResult.Ok -> msgOk
+                TestConnectionResult.NoUrl -> msgNoUrl
+                is TestConnectionResult.Failed -> String.format(msgFailFmt, result.message)
+            }
+            snackbar.showSnackbar(text)
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -54,7 +76,8 @@ fun SettingsScreen(
                     }
                 }
             )
-        }
+        },
+        snackbarHost = { SnackbarHost(snackbar) }
     ) { padding ->
         Column(
             modifier = Modifier
@@ -62,10 +85,10 @@ fun SettingsScreen(
                 .padding(padding)
                 .verticalScroll(rememberScrollState())
         ) {
-            SectionHeader("Appearance")
+            SectionHeader(stringResource(R.string.settings_appearance))
 
             ThemeMode.entries.forEach { mode ->
-                Row(
+                ThemeRow(
                     selected = settings.themeMode == mode,
                     onSelect = { viewModel.edit { it.copy(themeMode = mode) } },
                     label = mode.label()
@@ -94,7 +117,7 @@ fun SettingsScreen(
             )
 
             HorizontalDivider()
-            SectionHeader("AI Assistant")
+            SectionHeader(stringResource(R.string.settings_ai))
 
             OutlinedTextField(
                 value = settings.aiBaseUrl,
@@ -117,6 +140,26 @@ fun SettingsScreen(
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)
             )
+
+            Button(
+                onClick = viewModel::testConnection,
+                enabled = !isTesting,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+            ) {
+                if (isTesting) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(18.dp),
+                        strokeWidth = 2.dp,
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
+                    Text(
+                        text = stringResource(R.string.settings_testing),
+                        modifier = Modifier.padding(start = 8.dp)
+                    )
+                } else {
+                    Text(stringResource(R.string.settings_test_connection))
+                }
+            }
         }
     }
 }
@@ -133,7 +176,7 @@ private fun SectionHeader(text: String) {
 }
 
 @Composable
-private fun Row(selected: Boolean, onSelect: () -> Unit, label: String) {
+private fun ThemeRow(selected: Boolean, onSelect: () -> Unit, label: String) {
     ListItem(
         leadingContent = { RadioButton(selected = selected, onClick = onSelect) },
         headlineContent = { Text(label) },

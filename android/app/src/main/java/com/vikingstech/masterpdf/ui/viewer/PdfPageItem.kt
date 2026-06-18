@@ -3,7 +3,6 @@ package com.vikingstech.masterpdf.ui.viewer
 import android.graphics.Bitmap
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -23,16 +22,22 @@ import androidx.compose.ui.platform.LocalDensity
 import com.vikingstech.masterpdf.domain.model.DrawingStroke
 import com.vikingstech.masterpdf.domain.model.PdfPageInfo
 import com.vikingstech.masterpdf.domain.model.StrokePoint
+import kotlinx.coroutines.flow.SharedFlow
 
 /**
  * Renders one page on demand. A correctly-proportioned placeholder occupies the
  * slot before the bitmap arrives, so the lazy list never shifts as pages stream
  * in. Only composed for visible pages → constant memory for 1000+ page files.
+ *
+ * The rendered page is wrapped in a [ZoomableBox] for pinch-zoom/pan; the drawing
+ * overlay sits above the (untransformed) box so stroke coordinates stay aligned.
  */
 @Composable
 fun PdfPageItem(
     page: PdfPageInfo,
     render: suspend (pageIndex: Int, targetWidthPx: Int) -> Bitmap?,
+    zoomResetEvents: SharedFlow<Unit>,
+    onZoomChanged: (Float) -> Unit,
     strokes: List<DrawingStroke> = emptyList(),
     currentPath: List<StrokePoint> = emptyList(),
     strokeColor: Color = Color.Black,
@@ -57,16 +62,23 @@ fun PdfPageItem(
             if (targetWidthPx > 0) bitmap = render(page.index, targetWidthPx)
         }
 
-        val current = bitmap
-        if (current != null) {
-            Image(
-                bitmap = current.asImageBitmap(),
-                contentDescription = "Page ${page.index + 1}",
-                modifier = Modifier.fillMaxWidth(),
-                contentScale = ContentScale.FillWidth
-            )
-        } else {
-            CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+        ZoomableBox(
+            zoomResetEvents = zoomResetEvents,
+            isDrawingEnabled = isDrawingEnabled,
+            onZoomChanged = onZoomChanged,
+            modifier = Modifier.matchParentSize()
+        ) {
+            val current = bitmap
+            if (current != null) {
+                Image(
+                    bitmap = current.asImageBitmap(),
+                    contentDescription = "Page ${page.index + 1}",
+                    modifier = Modifier.fillMaxWidth(),
+                    contentScale = ContentScale.FillWidth
+                )
+            } else {
+                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+            }
         }
 
         if (isDrawingEnabled) {
@@ -78,7 +90,7 @@ fun PdfPageItem(
                 isDrawingEnabled = isDrawingEnabled,
                 onPointAdded = onPointAdded,
                 onStrokeFinished = onStrokeFinished,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.matchParentSize()
             )
         }
     }
