@@ -1,6 +1,7 @@
 package com.vikingstech.masterpdf.ui.viewer
 
 import android.graphics.BitmapFactory
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -14,12 +15,15 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.OpenInFull
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -29,13 +33,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
@@ -73,6 +78,12 @@ fun SignaturePlacerOverlay(
             .onSizeChanged { containerSize = it }
     ) {
         if (bitmap != null) {
+            val originalAspectRatio = remember(bitmap) {
+                val w = bitmap.width.coerceAtLeast(1)
+                val h = bitmap.height.coerceAtLeast(1)
+                w.toFloat() / h.toFloat()
+            }
+
             Box(
                 modifier = Modifier
                     .offset { IntOffset(offsetX.roundToInt(), offsetY.roundToInt()) }
@@ -80,7 +91,9 @@ fun SignaturePlacerOverlay(
                         width = with(density) { widthPx.toDp() },
                         height = with(density) { heightPx.toDp() }
                     )
-                    .border(1.dp, MaterialTheme.colorScheme.primary)
+                    .shadow(4.dp, RoundedCornerShape(4.dp))
+                    .background(Color.White.copy(alpha = 0.05f))
+                    .border(1.5.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(4.dp))
                     .pointerInput(Unit) {
                         detectDragGestures { change, drag ->
                             change.consume()
@@ -92,55 +105,94 @@ fun SignaturePlacerOverlay(
                 Image(
                     bitmap = bitmap.asImageBitmap(),
                     contentDescription = signature.name,
-                    modifier = Modifier.fillMaxSize()
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(4.dp)
                 )
-                // Resize handle (bottom-right corner).
+
+                // Visual corners markers (looks like professional crop marks)
+                Box(modifier = Modifier.align(Alignment.TopStart).size(6.dp).background(MaterialTheme.colorScheme.primary, CircleShape))
+                Box(modifier = Modifier.align(Alignment.TopEnd).size(6.dp).background(MaterialTheme.colorScheme.primary, CircleShape))
+                Box(modifier = Modifier.align(Alignment.BottomStart).size(6.dp).background(MaterialTheme.colorScheme.primary, CircleShape))
+
+                // Resize handle (bottom-right corner) with aspect-ratio scaling
                 Box(
                     modifier = Modifier
                         .align(Alignment.BottomEnd)
+                        .offset(6.dp, 6.dp)
                         .size(28.dp)
+                        .shadow(4.dp, CircleShape)
                         .background(MaterialTheme.colorScheme.primary, CircleShape)
-                        .pointerInput(Unit) {
+                        .pointerInput(originalAspectRatio) {
                             detectDragGestures { change, drag ->
                                 change.consume()
-                                widthPx = (widthPx + drag.x).coerceIn(handlePx * 2, containerSize.width.toFloat())
-                                heightPx = (heightPx + drag.y).coerceIn(handlePx * 2, containerSize.height.toFloat())
+                                val newWidth = (widthPx + drag.x).coerceIn(handlePx * 2f, containerSize.width.toFloat())
+                                widthPx = newWidth
+                                heightPx = newWidth / originalAspectRatio
                             }
                         },
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        Icons.Filled.OpenInFull,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onPrimary,
-                        modifier = Modifier.size(16.dp)
+                        imageVector = Icons.Filled.OpenInFull,
+                        contentDescription = "Resize signature",
+                        tint = Color.White,
+                        modifier = Modifier.size(14.dp)
                     )
                 }
             }
         }
 
-        // Floating action bar.
-        Row(
+        // Floating action bar
+        Surface(
+            shape = RoundedCornerShape(16.dp),
+            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)),
+            shadowElevation = 6.dp,
             modifier = Modifier
                 .align(Alignment.TopCenter)
-                .padding(12.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                .padding(16.dp)
         ) {
-            OutlinedButton(onClick = onCancel) { Text(stringResource(R.string.generic_cancel)) }
-            Button(
-                onClick = {
-                    val c = containerSize
-                    if (c.width > 0 && c.height > 0) {
-                        onCommit(
-                            offsetX / c.width,
-                            offsetY / c.height,
-                            widthPx / c.width,
-                            heightPx / c.height
-                        )
-                    }
-                }
+            Row(
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(stringResource(R.string.signature_commit))
+                OutlinedButton(
+                    onClick = onCancel,
+                    shape = RoundedCornerShape(10.dp),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
+                ) {
+                    Text(
+                        text = stringResource(R.string.generic_cancel),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Button(
+                    onClick = {
+                        val c = containerSize
+                        if (c.width > 0 && c.height > 0) {
+                            onCommit(
+                                offsetX / c.width,
+                                offsetY / c.height,
+                                widthPx / c.width,
+                                heightPx / c.height
+                            )
+                        }
+                    },
+                    shape = RoundedCornerShape(10.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = Color.White
+                    )
+                ) {
+                    Text(
+                        text = stringResource(R.string.signature_commit),
+                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.labelMedium
+                    )
+                }
             }
         }
     }

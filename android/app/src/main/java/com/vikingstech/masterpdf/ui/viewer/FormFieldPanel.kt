@@ -1,16 +1,28 @@
 package com.vikingstech.masterpdf.ui.viewer
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material3.Checkbox
-import androidx.compose.material3.Divider
+import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -19,6 +31,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.vikingstech.masterpdf.domain.model.FormFieldType
 import com.vikingstech.masterpdf.domain.model.PdfFormField
@@ -31,19 +44,30 @@ fun FormFieldPanel(
     onFieldSubmitted: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    LazyColumn(
+    Column(
         modifier = modifier
-            .fillMaxWidth()
             .padding(16.dp)
     ) {
-        items(fields, key = { it.name }) { field ->
-            FormFieldRow(
-                field = field,
-                value = fieldValues[field.name] ?: "",
-                onValueChanged = { onFieldValueChanged(field.name, it) },
-                onSubmitted = { onFieldSubmitted(field.name) }
-            )
-            Divider(modifier = Modifier.padding(vertical = 8.dp))
+        Text(
+            text = "Form Filler",
+            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+            modifier = Modifier.padding(bottom = 12.dp)
+        )
+        HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.15f))
+        
+        LazyColumn(
+            modifier = Modifier.weight(1f).fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+            contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = 16.dp)
+        ) {
+            items(fields, key = { it.name }) { field ->
+                FormFieldRow(
+                    field = field,
+                    value = fieldValues[field.name] ?: "",
+                    onValueChanged = { onFieldValueChanged(field.name, it) },
+                    onSubmitted = { onFieldSubmitted(field.name) }
+                )
+            }
         }
     }
 }
@@ -59,8 +83,11 @@ private fun FormFieldRow(
     Column(modifier = modifier.fillMaxWidth()) {
         Text(
             text = field.name,
-            style = MaterialTheme.typography.labelMedium,
-            modifier = Modifier.padding(bottom = 4.dp)
+            style = MaterialTheme.typography.labelLarge.copy(
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            ),
+            modifier = Modifier.padding(bottom = 6.dp)
         )
 
         when (field.type) {
@@ -69,30 +96,68 @@ private fun FormFieldRow(
                     value = value,
                     onValueChange = onValueChanged,
                     modifier = Modifier.fillMaxWidth(),
-                    label = { Text("Enter value") },
+                    placeholder = { Text("Enter text...") },
                     readOnly = field.isReadOnly,
-                    singleLine = true
+                    singleLine = true,
+                    shape = RoundedCornerShape(12.dp),
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f),
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f),
+                        focusedIndicatorColor = MaterialTheme.colorScheme.primary,
+                        unfocusedIndicatorColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
+                    )
                 )
             }
             FormFieldType.CHECKBOX -> {
-                Checkbox(
-                    checked = value.equals("Yes", ignoreCase = true) || value.equals("True", ignoreCase = true),
-                    onCheckedChange = { checked ->
-                        onValueChanged(if (checked) "Yes" else "No")
-                        onSubmitted()
-                    },
-                    modifier = Modifier.align(Alignment.Start),
-                    enabled = !field.isReadOnly
-                )
+                val isChecked = value.equals("Yes", ignoreCase = true) || value.equals("True", ignoreCase = true)
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 4.dp)
+                ) {
+                    Checkbox(
+                        checked = isChecked,
+                        onCheckedChange = { checked ->
+                            onValueChanged(if (checked) "Yes" else "No")
+                            onSubmitted()
+                        },
+                        colors = CheckboxDefaults.colors(
+                            checkedColor = MaterialTheme.colorScheme.primary,
+                            uncheckedColor = MaterialTheme.colorScheme.outline
+                        ),
+                        enabled = !field.isReadOnly
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        text = if (isChecked) "Selected" else "Unselected",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = if (isChecked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
             FormFieldType.RADIO -> {
                 var expanded by remember { mutableStateOf(false) }
-                androidx.compose.material3.OutlinedButton(
+                OutlinedButton(
                     onClick = { expanded = true },
                     modifier = Modifier.fillMaxWidth(),
-                    enabled = !field.isReadOnly
+                    enabled = !field.isReadOnly,
+                    shape = RoundedCornerShape(12.dp)
                 ) {
-                    Text(value.ifEmpty { "Select option" })
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = value.ifEmpty { "Select option" },
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        Icon(
+                            imageVector = Icons.Filled.ArrowDropDown,
+                            contentDescription = "Dropdown"
+                        )
+                    }
                 }
                 DropdownMenu(
                     expanded = expanded,
@@ -112,12 +177,26 @@ private fun FormFieldRow(
             }
             FormFieldType.COMBO_BOX, FormFieldType.LIST_BOX -> {
                 var expanded by remember { mutableStateOf(false) }
-                androidx.compose.material3.OutlinedButton(
+                OutlinedButton(
                     onClick = { expanded = true },
                     modifier = Modifier.fillMaxWidth(),
-                    enabled = !field.isReadOnly
+                    enabled = !field.isReadOnly,
+                    shape = RoundedCornerShape(12.dp)
                 ) {
-                    Text(value.ifEmpty { "Select option" })
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = value.ifEmpty { "Select option" },
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        Icon(
+                            imageVector = Icons.Filled.ArrowDropDown,
+                            contentDescription = "Dropdown"
+                        )
+                    }
                 }
                 DropdownMenu(
                     expanded = expanded,
@@ -136,7 +215,11 @@ private fun FormFieldRow(
                 }
             }
             else -> {
-                Text("Unsupported field type: ${field.type}")
+                Text(
+                    text = "Unsupported field type: ${field.type}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.error
+                )
             }
         }
     }
