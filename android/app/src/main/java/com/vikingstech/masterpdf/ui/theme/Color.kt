@@ -8,7 +8,7 @@ import androidx.compose.ui.graphics.Color
 val VikingBlue = Color(0xFF2563EB)
 val VikingBlueLight = Color(0xFF3B82F6)
 val VikingNavy = Color(0xFF091428)
-val VikingNavyLight = Color(0xFF0F1E36)
+val VikingNavyLight = Color(0xFF0F1F3C)
 val VikingAmber = Color(0xFFD97706)
 val VikingRed = Color(0xFFEF4444)
 val VikingGreen = Color(0xFF10B981)
@@ -18,38 +18,39 @@ val LightColors = lightColorScheme(
     onPrimary = Color.White,
     primaryContainer = Color(0xFFEFF6FF),
     onPrimaryContainer = Color(0xFF1E3A8A),
-    secondary = Color(0xFF475569),
+    secondary = Color(0xFF52628B),
     onSecondary = Color.White,
-    background = Color(0xFFF8FAFC),
-    onBackground = Color(0xFF0F172A),
+    background = Color(0xFFEAF0F8),
+    onBackground = Color(0xFF0B1B3A),
     surface = Color.White,
-    onSurface = Color(0xFF0F172A),
-    surfaceVariant = Color(0xFFF1F5F9),
-    onSurfaceVariant = Color(0xFF475569),
+    onSurface = Color(0xFF0B1B3A),
+    surfaceVariant = Color(0xFFFFFFFF),
+    onSurfaceVariant = Color(0xFF52628B),
     error = VikingRed,
     onError = Color.White,
-    outline = Color(0xFFE2E8F0),
-    outlineVariant = Color(0xFFCBD5E1)
+    outline = Color(0x1A0B1B3A),
+    outlineVariant = Color(0x2E0B1B3A)
 )
 
 val DarkColors = darkColorScheme(
-    primary = VikingBlueLight,
+    primary = VikingBlue,
     onPrimary = Color.White,
-    primaryContainer = Color(0xFF1E3A8A),
-    onPrimaryContainer = Color(0xFFEFF6FF),
-    secondary = Color(0xFF94A3B8),
-    onSecondary = Color(0xFF0F172A),
+    primaryContainer = Color(0xFF1E293B),
+    onPrimaryContainer = Color(0xFFEEF3FC),
+    secondary = Color(0xFFA7B8D6),
+    onSecondary = Color(0xFF091428),
     background = VikingNavy,
-    onBackground = Color(0xFFF1F5F9),
+    onBackground = Color(0xFFEEF3FC),
     surface = VikingNavyLight,
-    onSurface = Color(0xFFF8FAFC),
-    surfaceVariant = Color(0xFF1E293B),
-    onSurfaceVariant = Color(0xFF94A3B8),
+    onSurface = Color(0xFFEEF3FC),
+    surfaceVariant = Color(0xFF16264A),
+    onSurfaceVariant = Color(0xFFA7B8D6),
     error = Color(0xFFF87171),
     onError = Color(0xFF7F1D1D),
-    outline = Color(0xFF334155),
-    outlineVariant = Color(0xFF475569)
+    outline = Color(0x17FFFFFF),
+    outlineVariant = Color(0x29FFFFFF)
 )
+
 
 // True-black variant for OLED displays (battery + contrast).
 val OledDarkColors = DarkColors.copy(

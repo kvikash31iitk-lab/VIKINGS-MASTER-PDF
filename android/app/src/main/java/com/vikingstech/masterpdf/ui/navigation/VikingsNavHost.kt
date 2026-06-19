@@ -7,6 +7,10 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.vikingstech.masterpdf.ui.settings.SettingsViewModel
+import com.vikingstech.masterpdf.domain.model.ThemeMode
 import androidx.navigation.navArgument
 import com.vikingstech.masterpdf.ui.home.HomeScreen
 import com.vikingstech.masterpdf.ui.scan.ScanScreen
@@ -35,12 +39,25 @@ fun VikingsNavHost(
 
     NavHost(navController = navController, startDestination = Routes.HOME) {
         composable(Routes.HOME) {
+            val settingsViewModel: SettingsViewModel = hiltViewModel()
+            val settingsState = settingsViewModel.settings.collectAsStateWithLifecycle()
+            val settings = settingsState.value
+
             HomeScreen(
                 onOpenDocument = { uri -> navController.navigate(Routes.viewer(uri)) },
                 onContinueReading = { uri, page -> navController.navigate(Routes.viewer(uri, page)) },
                 onScan = { navController.navigate(Routes.SCAN) },
                 onTools = { navController.navigate(Routes.tools()) },
-                onSettings = { navController.navigate(Routes.SETTINGS) }
+                onSettings = { navController.navigate(Routes.SETTINGS) },
+                settings = settings,
+                onToggleTheme = {
+                    val nextMode = if (settings.themeMode == ThemeMode.LIGHT) {
+                        ThemeMode.DARK
+                    } else {
+                        ThemeMode.LIGHT
+                    }
+                    settingsViewModel.edit { it.copy(themeMode = nextMode) }
+                }
             )
         }
         composable(
