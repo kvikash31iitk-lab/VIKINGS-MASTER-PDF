@@ -17,6 +17,7 @@ import com.vikingstech.masterpdf.domain.model.PdfFormField
 import com.vikingstech.masterpdf.domain.model.PdfPageInfo
 import com.vikingstech.masterpdf.domain.repository.DocumentRepository
 import com.vikingstech.masterpdf.domain.util.Resource
+import com.vikingstech.masterpdf.ui.viewer.shouldMaterializeSource
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.withContext
@@ -48,11 +49,24 @@ class DocumentRepositoryImpl @Inject constructor(
     override suspend fun openDocument(uri: String): Resource<PdfDocument> = withContext(io) {
         runCatching {
             val parsed = Uri.parse(uri)
-            val pfd = openDescriptor(parsed) ?: error("Unable to open document descriptor")
+            // Transient content:// grants (ACTION_VIEW "Open with…") can be revoked
+            // before later edit/save reads, so materialize a private working copy
+            // eagerly and operate from it. Persisted grants and file:// sources are
+            // safe to read directly.
+            val workingFile = if (shouldMaterializeSource(parsed.scheme, hasPersistedRead(parsed))) {
+                materializeToCache(parsed)
+            } else {
+                null
+            }
+            val pfd = if (workingFile != null) {
+                ParcelFileDescriptor.open(workingFile, ParcelFileDescriptor.MODE_READ_ONLY)
+            } else {
+                openDescriptor(parsed) ?: error("Unable to open document descriptor")
+            }
             val viewport = PdfRendererViewport(pfd)
             val (name, size) = queryNameAndSize(parsed)
             open.remove(uri)?.let { it.viewport.close(); it.workingFile?.delete() }
-            open[uri] = OpenDoc(uri, parsed, viewport, null)
+            open[uri] = OpenDoc(uri, parsed, viewport, workingFile)
             Resource.Success(
                 PdfDocument(
                     id = uri,
@@ -140,6 +154,29 @@ class DocumentRepositoryImpl @Inject constructor(
 
     override suspend fun fillFormField(documentId: String, fieldName: String, value: String): Resource<Unit> =
         mutate(documentId) { src, dst -> PdfBoxManipulator.fillFormField(src, dst, fieldName, value) }
+
+    override suspend fun fillFormFields(documentId: String, values: Map<String, String>): Resource<Unit> =
+        mutate(documentId) { src, dst -> PdfBoxManipulator.fillFormFields(src, dst, values) }
+
+    override suspend fun addTextStamp(
+        documentId: String,
+        pageIndex: Int,
+        text: String,
+        textArgb: Int,
+        backgroundArgb: Int,
+        borderArgb: Int,
+        borderWidthPts: Float,
+        fontSizePts: Float,
+        xPts: Float,
+        yPts: Float,
+        widthPts: Float,
+        heightPts: Float
+    ): Resource<Unit> = mutate(documentId) { src, dst ->
+        PdfBoxManipulator.addTextStamp(
+            src, dst, pageIndex, text, textArgb, backgroundArgb, borderArgb,
+            borderWidthPts, fontSizePts, xPts, yPts, widthPts, heightPts
+        )
+    }
 
     override suspend fun addImageAnnotation(
         documentId: String,
@@ -243,6 +280,23 @@ class DocumentRepositoryImpl @Inject constructor(
         val out = context.contentResolver.openOutputStream(Uri.parse(destinationUri))
             ?: error("Cannot open destination for writing")
         out.use { os -> file.inputStream().use { it.copyTo(os) } }
+    }
+
+    /** True if the app holds a persisted read grant for [uri] (SAF picker flow). */
+    private fun hasPersistedRead(uri: Uri): Boolean =
+        runCatching {
+            context.contentResolver.persistedUriPermissions.any {
+                it.uri == uri && it.isReadPermission
+            }
+        }.getOrDefault(false)
+
+    /** Copy a (possibly transient) source URI into a private cache file once. */
+    private fun materializeToCache(uri: Uri): File {
+        val file = File(context.cacheDir, "work_${abs(uri.toString().hashCode())}.pdf")
+        context.contentResolver.openInputStream(uri)?.use { input ->
+            file.outputStream().use { input.copyTo(it) }
+        } ?: error("Cannot read source document")
+        return file
     }
 
     /** Materialise the source into a private cache file PdfBox can read/write. */

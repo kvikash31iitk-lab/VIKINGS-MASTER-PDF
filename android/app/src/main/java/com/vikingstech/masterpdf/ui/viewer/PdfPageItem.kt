@@ -29,12 +29,17 @@ import kotlinx.coroutines.flow.SharedFlow
  * slot before the bitmap arrives, so the lazy list never shifts as pages stream
  * in. Only composed for visible pages → constant memory for 1000+ page files.
  *
- * The rendered page is wrapped in a [ZoomableBox] for pinch-zoom/pan; the drawing
- * overlay sits above the (untransformed) box so stroke coordinates stay aligned.
+ * The bitmap is keyed on [renderRevision] in addition to (page, width): after a
+ * mutation the revision bumps, dropping the stale cached render so edits show up
+ * immediately.
+ *
+ * Drawing strokes and the optional [placementOverlay] are scoped to this page's
+ * box, so coordinates map directly onto the page.
  */
 @Composable
 fun PdfPageItem(
     page: PdfPageInfo,
+    renderRevision: Int,
     render: suspend (pageIndex: Int, targetWidthPx: Int) -> Bitmap?,
     zoomResetEvents: SharedFlow<Unit>,
     onZoomChanged: (Float) -> Unit,
@@ -45,10 +50,11 @@ fun PdfPageItem(
     isDrawingEnabled: Boolean = false,
     onPointAdded: (StrokePoint) -> Unit = {},
     onStrokeFinished: () -> Unit = {},
+    placementOverlay: @Composable () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val density = LocalDensity.current
-    var bitmap by remember(page.index) { mutableStateOf<Bitmap?>(null) }
+    var bitmap by remember(page.index, renderRevision) { mutableStateOf<Bitmap?>(null) }
 
     BoxWithConstraints(
         modifier = modifier
@@ -58,7 +64,7 @@ fun PdfPageItem(
     ) {
         val targetWidthPx = with(density) { maxWidth.roundToPx() }
 
-        LaunchedEffect(page.index, targetWidthPx) {
+        LaunchedEffect(page.index, targetWidthPx, renderRevision) {
             if (targetWidthPx > 0) bitmap = render(page.index, targetWidthPx)
         }
 
@@ -93,5 +99,8 @@ fun PdfPageItem(
                 modifier = Modifier.matchParentSize()
             )
         }
+
+        // Signature/stamp placement, scoped to this page's bounds.
+        placementOverlay()
     }
 }

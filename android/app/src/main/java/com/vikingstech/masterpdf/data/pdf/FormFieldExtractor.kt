@@ -49,11 +49,17 @@ object FormFieldExtractor {
             page.annotations?.contains(widget) == true
         }?.index ?: 0
 
-        val value = field.valueAsString ?: ""
+        val value = when (field) {
+            // Normalise checkbox state to a stable on/off token the UI understands,
+            // independent of the document's arbitrary on-state name.
+            is PDCheckBox -> if (field.isChecked) "Yes" else "Off"
+            else -> field.valueAsString ?: ""
+        }
         val defaultValue = (field as? PDTextField)?.defaultValue ?: ""
         val options = when (field) {
             is PDComboBox -> field.optionsExportValues.orEmpty()
             is PDListBox -> field.optionsExportValues.orEmpty()
+            is PDRadioButton -> field.onValues.toList()
             else -> emptyList()
         }
 

@@ -10,6 +10,8 @@ data class ToolsUiState(
     val documentId: String? = null,
     val documentName: String = "",
     val pageCount: Int = 0,
+    /** Bumped after a structural mutation so page thumbnails reload fresh bitmaps. */
+    val renderRevision: Int = 0,
     val isProcessing: Boolean = false,
     val result: String? = null,
     val error: String? = null,

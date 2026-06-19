@@ -8,9 +8,11 @@ import com.tom_roush.pdfbox.io.MemoryUsageSetting
 import com.tom_roush.pdfbox.multipdf.PDFMergerUtility
 import com.tom_roush.pdfbox.pdmodel.PDDocument
 import com.tom_roush.pdfbox.pdmodel.PDPageContentStream
+import com.tom_roush.pdfbox.pdmodel.font.PDType1Font
 import com.tom_roush.pdfbox.pdmodel.graphics.image.JPEGFactory
 import com.tom_roush.pdfbox.pdmodel.graphics.image.LosslessFactory
 import com.tom_roush.pdfbox.pdmodel.graphics.image.PDImageXObject
+import com.tom_roush.pdfbox.pdmodel.interactive.form.PDCheckBox
 import com.vikingstech.masterpdf.domain.model.InkAnnotation
 import java.io.File
 
@@ -37,10 +39,12 @@ object PdfBoxManipulator {
 
     fun deletePages(source: File, destination: File, pageIndices: List<Int>) {
         PDDocument.load(source, MemoryUsageSetting.setupTempFileOnly()).use { doc ->
-            // Remove from the back so earlier indices stay valid.
-            pageIndices.distinct().sortedDescending().forEach { idx ->
-                if (idx in 0 until doc.numberOfPages) doc.removePage(idx)
+            val valid = pageIndices.distinct().filter { it in 0 until doc.numberOfPages }
+            require(doc.numberOfPages - valid.size >= 1) {
+                "A PDF must keep at least one page."
             }
+            // Remove from the back so earlier indices stay valid.
+            valid.sortedDescending().forEach { idx -> doc.removePage(idx) }
             doc.save(destination)
         }
     }
@@ -58,53 +62,164 @@ object PdfBoxManipulator {
     }
 
     fun fillFormField(source: File, destination: File, fieldName: String, value: String) {
+        fillFormFields(source, destination, mapOf(fieldName to value))
+    }
+
+    /**
+     * Applies multiple field values in a single pass. Checkboxes use the
+     * dedicated check/unCheck APIs (their on-state names vary per document and
+     * a hardcoded "Yes"/"No" often fails); every other field type is set by its
+     * export value. Failures on a single field are isolated so one bad value
+     * never aborts the whole save.
+     */
+    fun fillFormFields(source: File, destination: File, values: Map<String, String>) {
         PDDocument.load(source, MemoryUsageSetting.setupTempFileOnly()).use { doc ->
             val acroForm = doc.documentCatalog.acroForm
             if (acroForm != null) {
-                val field = acroForm.getField(fieldName)
-                field?.setValue(value)
+                values.forEach { (name, value) ->
+                    runCatching {
+                        when (val field = acroForm.getField(name)) {
+                            null -> Unit
+                            is PDCheckBox -> {
+                                if (isCheckedValue(value)) field.check() else field.unCheck()
+                            }
+                            else -> field.setValue(value)
+                        }
+                    }
+                }
             }
             doc.save(destination)
         }
+    }
+
+    private fun isCheckedValue(value: String): Boolean = when {
+        value.isBlank() -> false
+        value.equals("off", ignoreCase = true) -> false
+        value.equals("no", ignoreCase = true) -> false
+        value.equals("false", ignoreCase = true) -> false
+        value == "0" -> false
+        else -> true
     }
 
     /**
      * Draws freehand strokes onto a page as vector polylines via a content stream.
      * (pdfbox-android doesn't ship a dedicated ink-annotation type, and painting
      * the strokes directly renders identically and is simpler to reason about.)
-     * Stroke points are in a top-left origin; we flip Y to PDF's bottom-left.
+     *
+     * Stroke points are expected to already be in PDF user-space (bottom-left
+     * origin, points) — the caller maps from screen/normalized coordinates. Each
+     * stroke is painted with its own colour and width.
      */
     fun addInkAnnotation(source: File, destination: File, annotation: InkAnnotation) {
         PDDocument.load(source, MemoryUsageSetting.setupTempFileOnly()).use { doc ->
             if (annotation.pageIndex !in 0 until doc.numberOfPages) return@use
             val page = doc.getPage(annotation.pageIndex)
-            val pageHeight = page.mediaBox.height
 
-            val first = annotation.strokes.firstOrNull()
             PDPageContentStream(
                 doc, page, PDPageContentStream.AppendMode.APPEND, true, true
             ).use { cs ->
-                first?.color?.let { color ->
-                    val argb = color.toArgb()
-                    val r = ((argb shr 16) and 0xFF) / 255f
-                    val g = ((argb shr 8) and 0xFF) / 255f
-                    val b = (argb and 0xFF) / 255f
-                    cs.setStrokingColor(r, g, b)
-                }
-                cs.setLineWidth(first?.strokeWidth ?: 2f)
-
                 for (stroke in annotation.strokes) {
                     val pts = stroke.points
                     if (pts.size < 2) continue
-                    cs.moveTo(pts[0].x, pageHeight - pts[0].y)
+                    val argb = stroke.color.toArgb()
+                    cs.setStrokingColor(
+                        ((argb shr 16) and 0xFF) / 255f,
+                        ((argb shr 8) and 0xFF) / 255f,
+                        (argb and 0xFF) / 255f
+                    )
+                    cs.setLineWidth(stroke.strokeWidth.coerceAtLeast(0.5f))
+                    cs.moveTo(pts[0].x, pts[0].y)
                     for (i in 1 until pts.size) {
-                        cs.lineTo(pts[i].x, pageHeight - pts[i].y)
+                        cs.lineTo(pts[i].x, pts[i].y)
                     }
                     cs.stroke()
                 }
             }
             doc.save(destination)
         }
+    }
+
+    /**
+     * Draws a text stamp (a filled, bordered rectangle with centred text) onto
+     * [pageIndex] at the given rectangle, expressed in PDF user-space points with
+     * a bottom-left origin. Colours are packed ARGB ints. The font size is scaled
+     * down if the text would overflow the box width.
+     */
+    fun addTextStamp(
+        source: File,
+        destination: File,
+        pageIndex: Int,
+        text: String,
+        textArgb: Int,
+        backgroundArgb: Int,
+        borderArgb: Int,
+        borderWidthPts: Float,
+        fontSizePts: Float,
+        xPts: Float,
+        yPts: Float,
+        widthPts: Float,
+        heightPts: Float
+    ) {
+        PDDocument.load(source, MemoryUsageSetting.setupTempFileOnly()).use { doc ->
+            if (pageIndex !in 0 until doc.numberOfPages) return@use
+            val page = doc.getPage(pageIndex)
+            val font = PDType1Font.HELVETICA_BOLD
+
+            PDPageContentStream(
+                doc, page, PDPageContentStream.AppendMode.APPEND, true, true
+            ).use { cs ->
+                // Background fill.
+                setNonStrokingArgb(cs, backgroundArgb)
+                cs.addRect(xPts, yPts, widthPts, heightPts)
+                cs.fill()
+
+                // Border.
+                if (borderWidthPts > 0f) {
+                    setStrokingArgb(cs, borderArgb)
+                    cs.setLineWidth(borderWidthPts)
+                    cs.addRect(xPts, yPts, widthPts, heightPts)
+                    cs.stroke()
+                }
+
+                // Centred text, shrunk to fit the available width.
+                if (text.isNotEmpty()) {
+                    val padding = 4f
+                    val available = (widthPts - padding * 2).coerceAtLeast(1f)
+                    var size = fontSizePts.coerceAtLeast(1f)
+                    var textWidth = font.getStringWidth(text) / 1000f * size
+                    if (textWidth > available) {
+                        size *= available / textWidth
+                        textWidth = available
+                    }
+                    val textHeight = font.fontDescriptor.capHeight / 1000f * size
+                    val tx = xPts + (widthPts - textWidth) / 2f
+                    val ty = yPts + (heightPts - textHeight) / 2f
+                    setNonStrokingArgb(cs, textArgb)
+                    cs.beginText()
+                    cs.setFont(font, size)
+                    cs.newLineAtOffset(tx, ty)
+                    cs.showText(text)
+                    cs.endText()
+                }
+            }
+            doc.save(destination)
+        }
+    }
+
+    private fun setNonStrokingArgb(cs: PDPageContentStream, argb: Int) {
+        cs.setNonStrokingColor(
+            ((argb shr 16) and 0xFF) / 255f,
+            ((argb shr 8) and 0xFF) / 255f,
+            (argb and 0xFF) / 255f
+        )
+    }
+
+    private fun setStrokingArgb(cs: PDPageContentStream, argb: Int) {
+        cs.setStrokingColor(
+            ((argb shr 16) and 0xFF) / 255f,
+            ((argb shr 8) and 0xFF) / 255f,
+            (argb and 0xFF) / 255f
+        )
     }
 
     /**

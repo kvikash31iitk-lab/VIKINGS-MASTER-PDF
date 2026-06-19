@@ -36,6 +36,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -69,6 +71,7 @@ fun ViewerScreen(
     val listState = rememberLazyListState()
     val configuration = LocalConfiguration.current
     val isTablet = configuration.screenWidthDp >= 600
+    val snackbar = remember { SnackbarHostState() }
 
     val currentPage = listState.firstVisibleItemIndex
 
@@ -80,6 +83,14 @@ fun ViewerScreen(
     // Honour jump-to-page requests (bookmarks + startPage restore).
     LaunchedEffect(Unit) {
         viewModel.jumpToPageEvent.collect { index -> listState.animateScrollToItem(index) }
+    }
+
+    // Surface one-shot feedback (form saved, stamp applied, errors…).
+    LaunchedEffect(state.userMessage) {
+        state.userMessage?.let {
+            snackbar.showSnackbar(it)
+            viewModel.consumeUserMessage()
+        }
     }
 
     Scaffold(
@@ -98,14 +109,15 @@ fun ViewerScreen(
                 onAi = viewModel::toggleAiPanel,
                 onDraw = viewModel::toggleDrawingMode,
                 onSignature = viewModel::toggleSignatureCapture,
-                onStamps = viewModel::toggleStampDesigner,
+                onStamps = viewModel::toggleStampPicker,
                 onForms = viewModel::toggleFormPanel,
                 onTools = { state.document?.uri?.let(onOpenTools) }
             )
         },
         bottomBar = {
             if (state.isDrawingMode) DrawingToolbar(viewModel)
-        }
+        },
+        snackbarHost = { SnackbarHost(snackbar) }
     ) { padding ->
         Box(modifier = Modifier.fillMaxSize().padding(padding)) {
             Row(modifier = Modifier.fillMaxSize()) {
@@ -127,8 +139,10 @@ fun ViewerScreen(
                         FormFieldPanel(
                             fields = state.formFields,
                             fieldValues = state.formFieldValues,
+                            isSaving = state.isSavingForm,
                             onFieldValueChanged = viewModel::updateFormFieldValue,
-                            onFieldSubmitted = viewModel::submitFormField
+                            onFieldSubmitted = viewModel::submitFormField,
+                            onApplyAll = viewModel::applyAllFormFields
                         )
                     }
                 }
@@ -137,7 +151,7 @@ fun ViewerScreen(
                     AiChatPanel(
                         messages = state.chatMessages,
                         inputText = state.aiInputText,
-                        isStreaming = state.isAiStreaming,
+                        isStreaming = state.isAiStreaming || state.isExtractingContext,
                         onInputChange = viewModel::setAiInput,
                         onSend = viewModel::sendAiMessage,
                         onClear = viewModel::clearConversation,
@@ -150,23 +164,21 @@ fun ViewerScreen(
                     )
                 }
             }
-
-            // Signature placement floats above the page content.
-            state.signatureForPlacement?.let { sig ->
-                SignaturePlacerOverlay(
-                    signature = sig,
-                    onCommit = { nx, ny, nw, nh ->
-                        viewModel.commitSignature(currentPage, nx, ny, nw, nh)
-                    },
-                    onCancel = viewModel::clearSignaturePlacement
-                )
-            }
         }
+    }
+
+    if (state.showStampPicker) {
+        StampPickerDialog(
+            stamps = state.availableStamps,
+            onSelect = viewModel::beginStampPlacement,
+            onCreateNew = viewModel::openStampDesigner,
+            onDismiss = viewModel::toggleStampPicker
+        )
     }
 
     if (state.showStampDesigner) {
         StampDesignerDialog(
-            onDismiss = viewModel::toggleStampDesigner,
+            onDismiss = viewModel::closeStampDesigner,
             onSave = viewModel::saveNewStamp
         )
     }
@@ -219,18 +231,36 @@ private fun ViewerContent(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             items(state.pages, key = { it.index }) { page ->
+                val signature = state.signatureForPlacement
+                val stamp = state.placementStamp
+                val isPlacementTarget = page.index == state.placementPage
                 PdfPageItem(
                     page = page,
+                    renderRevision = state.renderRevision,
                     render = viewModel::renderPage,
                     zoomResetEvents = viewModel.zoomResetEvents,
                     onZoomChanged = viewModel::onZoomChanged,
-                    strokes = state.currentPageStrokes,
-                    currentPath = state.currentStrokePath,
+                    strokes = state.pageStrokes[page.index].orEmpty(),
+                    currentPath = if (state.activeDrawPage == page.index) state.currentStrokePath else emptyList(),
                     strokeColor = state.strokeColor,
                     strokeWidth = state.strokeWidth,
                     isDrawingEnabled = state.isDrawingMode,
-                    onPointAdded = viewModel::addPointToCurrentStroke,
-                    onStrokeFinished = viewModel::finishStroke
+                    onPointAdded = { point -> viewModel.addPointToCurrentStroke(page.index, point) },
+                    onStrokeFinished = { viewModel.finishStroke(page.index) },
+                    placementOverlay = {
+                        when {
+                            signature != null && isPlacementTarget -> SignaturePlacerOverlay(
+                                signature = signature,
+                                onCommit = { nx, ny, nw, nh -> viewModel.commitSignature(nx, ny, nw, nh) },
+                                onCancel = viewModel::clearSignaturePlacement
+                            )
+                            stamp != null && isPlacementTarget -> StampPlacerOverlay(
+                                stamp = stamp,
+                                onCommit = { nx, ny, nw, nh -> viewModel.commitStampPlacement(nx, ny, nw, nh) },
+                                onCancel = viewModel::cancelStampPlacement
+                            )
+                        }
+                    }
                 )
             }
         }

@@ -66,6 +66,15 @@
     <string name="signature_place_hint">Drag to position, then Apply</string>
     <string name="signature_commit">Apply</string>
 
+    <!-- Stamps -->
+    <string name="stamp_none">No saved stamps yet. Create one to get started.</string>
+    <string name="stamp_create_new">Create new</string>
+
+    <!-- Forms -->
+    <string name="form_apply_all">Apply all</string>
+    <string name="form_apply_field">Apply field</string>
+    <string name="tools_page_delete_all">A PDF must keep at least one page.</string>
+
     <!-- Tools -->
     <string name="tools_title">Tools</string>
     <string name="tools_no_document">Open a document to use page tools.</string>

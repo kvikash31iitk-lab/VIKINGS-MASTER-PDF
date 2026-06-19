@@ -46,6 +46,13 @@ class FakeRecentsRepository(
 
 /** No-op document repository; ViewModel tests that need it never open a document. */
 class FakeDocumentRepository : DocumentRepository {
+
+    /** Records edit calls so tests can assert routing (e.g. correct page index). */
+    val inkAnnotations = mutableListOf<InkAnnotation>()
+    val textStampPages = mutableListOf<Int>()
+    val filledFields = mutableListOf<Map<String, String>>()
+    val deletedPageRequests = mutableListOf<List<Int>>()
+
     override suspend fun openDocument(uri: String): Resource<PdfDocument> =
         Resource.Error("not implemented")
 
@@ -63,8 +70,10 @@ class FakeDocumentRepository : DocumentRepository {
     override suspend fun reorderPages(documentId: String, newOrder: List<Int>): Resource<Unit> =
         Resource.Success(Unit)
 
-    override suspend fun deletePages(documentId: String, pageIndices: List<Int>): Resource<Unit> =
-        Resource.Success(Unit)
+    override suspend fun deletePages(documentId: String, pageIndices: List<Int>): Resource<Unit> {
+        deletedPageRequests.add(pageIndices)
+        return Resource.Success(Unit)
+    }
 
     override suspend fun rotatePages(documentId: String, pageIndices: List<Int>, degrees: Int): Resource<Unit> =
         Resource.Success(Unit)
@@ -72,14 +81,41 @@ class FakeDocumentRepository : DocumentRepository {
     override suspend fun save(documentId: String, destinationUri: String): Resource<String> =
         Resource.Success(destinationUri)
 
-    override suspend fun addInkAnnotation(documentId: String, annotation: InkAnnotation): Resource<Unit> =
-        Resource.Success(Unit)
+    override suspend fun addInkAnnotation(documentId: String, annotation: InkAnnotation): Resource<Unit> {
+        inkAnnotations.add(annotation)
+        return Resource.Success(Unit)
+    }
 
     override suspend fun getFormFields(documentId: String): Resource<List<PdfFormField>> =
         Resource.Success(emptyList())
 
-    override suspend fun fillFormField(documentId: String, fieldName: String, value: String): Resource<Unit> =
-        Resource.Success(Unit)
+    override suspend fun fillFormField(documentId: String, fieldName: String, value: String): Resource<Unit> {
+        filledFields.add(mapOf(fieldName to value))
+        return Resource.Success(Unit)
+    }
+
+    override suspend fun fillFormFields(documentId: String, values: Map<String, String>): Resource<Unit> {
+        filledFields.add(values)
+        return Resource.Success(Unit)
+    }
+
+    override suspend fun addTextStamp(
+        documentId: String,
+        pageIndex: Int,
+        text: String,
+        textArgb: Int,
+        backgroundArgb: Int,
+        borderArgb: Int,
+        borderWidthPts: Float,
+        fontSizePts: Float,
+        xPts: Float,
+        yPts: Float,
+        widthPts: Float,
+        heightPts: Float
+    ): Resource<Unit> {
+        textStampPages.add(pageIndex)
+        return Resource.Success(Unit)
+    }
 
     override suspend fun compress(documentId: String, quality: Float, destinationUri: String): Resource<String> =
         Resource.Success(destinationUri)

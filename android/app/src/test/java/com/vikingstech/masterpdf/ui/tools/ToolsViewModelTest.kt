@@ -19,6 +19,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Rule
 import org.junit.Test
@@ -69,6 +70,13 @@ class ToolsViewModelTest {
 
         vm.removeMergeFile(0)
         assertEquals(listOf("a"), vm.state.value.mergeFiles.map { it.uri })
+    }
+
+    @Test
+    fun `pageEditError flags deleting every page`() {
+        assertNotNull(pageEditError(0))
+        assertNull(pageEditError(1))
+        assertNull(pageEditError(5))
     }
 
     @Test

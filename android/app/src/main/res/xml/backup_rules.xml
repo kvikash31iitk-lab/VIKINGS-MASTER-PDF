@@ -1,8 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Room DB (recents/settings/stamps/signatures) is backed up; caches are not. -->
+<!--
+  Auto Backup (Android 11 and below). Only the Room DB and shared prefs are
+  backed up; cached working copies of opened documents are deliberately left out.
+  Excludes must sit under an included domain, so we whitelist the two domains we
+  back up rather than excluding cache paths from domains we never include.
+-->
 <full-backup-content>
     <include domain="database" path="." />
     <include domain="sharedpref" path="." />
-    <exclude domain="file" path="documents/" />
-    <exclude domain="external" path="." />
 </full-backup-content>

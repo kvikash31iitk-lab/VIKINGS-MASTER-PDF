@@ -244,7 +244,7 @@ private fun PageManagerSection(state: ToolsUiState, viewModel: ToolsViewModel) {
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                ToolPageThumb(original, viewModel)
+                ToolPageThumb(original, state.renderRevision, viewModel)
                 Text(
                     text = stringResource(R.string.tools_page_label, original + 1),
                     textDecoration = if (isDeleted) TextDecoration.LineThrough else null,
@@ -278,6 +278,16 @@ private fun PageManagerSection(state: ToolsUiState, viewModel: ToolsViewModel) {
             ActivityResultContracts.CreateDocument("application/pdf")
         ) { uri -> uri?.let { viewModel.saveAs(it.toString()) } }
 
+        val keptCount = slots.count { it !in deleted }
+        if (keptCount == 0) {
+            Text(
+                text = stringResource(R.string.tools_page_delete_all),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.padding(top = 8.dp)
+            )
+        }
+
         Row(
             modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -288,6 +298,7 @@ private fun PageManagerSection(state: ToolsUiState, viewModel: ToolsViewModel) {
                     val del = slots.filter { it in deleted }
                     viewModel.applyPageEdits(keep, del)
                 },
+                enabled = keptCount > 0,
                 modifier = Modifier.weight(1f)
             ) {
                 Text(stringResource(R.string.viewer_apply))
@@ -470,11 +481,11 @@ private fun MergeSection(state: ToolsUiState, viewModel: ToolsViewModel) {
 // ── shared bits ──────────────────────────────────────────────────────────────
 
 @Composable
-private fun ToolPageThumb(pageIndex: Int, viewModel: ToolsViewModel) {
+private fun ToolPageThumb(pageIndex: Int, revision: Int, viewModel: ToolsViewModel) {
     val density = LocalDensity.current
     val widthPx = with(density) { 36.dp.roundToPx() }
-    var bitmap by remember(pageIndex) { mutableStateOf<Bitmap?>(null) }
-    LaunchedEffect(pageIndex) { bitmap = viewModel.renderPage(pageIndex, widthPx) }
+    var bitmap by remember(pageIndex, revision) { mutableStateOf<Bitmap?>(null) }
+    LaunchedEffect(pageIndex, revision) { bitmap = viewModel.renderPage(pageIndex, widthPx) }
 
     Box(
         modifier = Modifier

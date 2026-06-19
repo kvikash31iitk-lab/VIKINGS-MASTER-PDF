@@ -70,11 +70,12 @@ android {
     }
 
     lint {
-        // Debug CI assembles + lints an APK; lint findings (largely pre-existing
-        // manifest/resource advisories) shouldn't block the build. Reports are
-        // still generated under build/reports/ for review.
-        abortOnError = false
-        checkReleaseBuilds = false
+        // Real errors fail the build; warnings stay advisory so the large
+        // pre-existing warning backlog doesn't block CI. Reports are written to
+        // build/reports/ for review.
+        abortOnError = true
+        warningsAsErrors = false
+        checkReleaseBuilds = true
     }
 }
 

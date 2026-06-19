@@ -40,6 +40,29 @@ interface DocumentRepository {
 
     suspend fun fillFormField(documentId: String, fieldName: String, value: String): Resource<Unit>
 
+    /** Apply several form field values in a single edit pass. */
+    suspend fun fillFormFields(documentId: String, values: Map<String, String>): Resource<Unit>
+
+    /**
+     * Draw a text stamp (bordered rectangle + centred text) onto [pageIndex].
+     * Geometry is PDF user-space points (bottom-left origin); colours are packed
+     * ARGB ints.
+     */
+    suspend fun addTextStamp(
+        documentId: String,
+        pageIndex: Int,
+        text: String,
+        textArgb: Int,
+        backgroundArgb: Int,
+        borderArgb: Int,
+        borderWidthPts: Float,
+        fontSizePts: Float,
+        xPts: Float,
+        yPts: Float,
+        widthPts: Float,
+        heightPts: Float
+    ): Resource<Unit>
+
     /** Re-encode embedded images at [quality] (0..1) and write to [destinationUri]. */
     suspend fun compress(documentId: String, quality: Float, destinationUri: String): Resource<String>
 

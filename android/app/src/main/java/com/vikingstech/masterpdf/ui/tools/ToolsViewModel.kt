@@ -90,6 +90,10 @@ class ToolsViewModel @Inject constructor(
      */
     fun applyPageEdits(keepOrder: List<Int>, deleted: List<Int>) = viewModelScope.launch {
         val id = _state.value.documentId ?: return@launch
+        pageEditError(keepOrder.size)?.let { message ->
+            _state.update { it.copy(error = message) }
+            return@launch
+        }
         runProcessing {
             if (deleted.isEmpty() && keepOrder == keepOrder.sorted()) {
                 // Pure reorder (or no-op).
@@ -105,6 +109,7 @@ class ToolsViewModel @Inject constructor(
                 }
             }
             refreshPageCount(id)
+            bumpRevision()
             "Pages updated"
         }
     }
@@ -116,6 +121,7 @@ class ToolsViewModel @Inject constructor(
         if (pageIndices.isEmpty()) return@launch
         runProcessing {
             rotatePages(id, pageIndices, degrees).orThrow()
+            bumpRevision()
             "Rotated ${pageIndices.size} page(s)"
         }
     }
@@ -191,6 +197,10 @@ class ToolsViewModel @Inject constructor(
         _state.update { it.copy(pageCount = pages.size) }
     }
 
+    private fun bumpRevision() {
+        _state.update { it.copy(renderRevision = it.renderRevision + 1) }
+    }
+
     private suspend fun runProcessing(block: suspend () -> String) {
         _state.update { it.copy(isProcessing = true, error = null, result = null) }
         try {
@@ -211,3 +221,11 @@ class ToolsViewModel @Inject constructor(
         _state.value.documentId?.let(closeDocument::invoke)
     }
 }
+
+/**
+ * Validates a page edit. Returns an error message if it would leave the document
+ * with no pages, else null. Extracted as a pure function so it can be unit tested
+ * without an open document.
+ */
+fun pageEditError(keepCount: Int): String? =
+    if (keepCount <= 0) "A PDF must keep at least one page." else null
