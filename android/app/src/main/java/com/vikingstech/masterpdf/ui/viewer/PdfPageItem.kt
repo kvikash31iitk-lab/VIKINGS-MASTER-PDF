@@ -22,7 +22,6 @@ import androidx.compose.ui.platform.LocalDensity
 import com.vikingstech.masterpdf.domain.model.DrawingStroke
 import com.vikingstech.masterpdf.domain.model.PdfPageInfo
 import com.vikingstech.masterpdf.domain.model.StrokePoint
-import kotlinx.coroutines.flow.SharedFlow
 
 /**
  * Renders one page on demand. A correctly-proportioned placeholder occupies the
@@ -33,16 +32,16 @@ import kotlinx.coroutines.flow.SharedFlow
  * mutation the revision bumps, dropping the stale cached render so edits show up
  * immediately.
  *
- * Drawing strokes and the optional [placementOverlay] are scoped to this page's
- * box, so coordinates map directly onto the page.
+ * Zoom/pan is **not** handled here — it belongs to the document-level
+ * [ZoomableDocumentBox] that wraps the whole list, so every page shares one zoom.
+ * This item only paints the page and its drawing / [placementOverlay] overlays,
+ * whose coordinates map directly onto the (unzoomed) page box.
  */
 @Composable
 fun PdfPageItem(
     page: PdfPageInfo,
     renderRevision: Int,
     render: suspend (pageIndex: Int, targetWidthPx: Int) -> Bitmap?,
-    zoomResetEvents: SharedFlow<Unit>,
-    onZoomChanged: (Float) -> Unit,
     strokes: List<DrawingStroke> = emptyList(),
     currentPath: List<StrokePoint> = emptyList(),
     strokeColor: Color = Color.Black,
@@ -68,23 +67,16 @@ fun PdfPageItem(
             if (targetWidthPx > 0) bitmap = render(page.index, targetWidthPx)
         }
 
-        ZoomableBox(
-            zoomResetEvents = zoomResetEvents,
-            isDrawingEnabled = isDrawingEnabled,
-            onZoomChanged = onZoomChanged,
-            modifier = Modifier.matchParentSize()
-        ) {
-            val current = bitmap
-            if (current != null) {
-                Image(
-                    bitmap = current.asImageBitmap(),
-                    contentDescription = "Page ${page.index + 1}",
-                    modifier = Modifier.fillMaxWidth(),
-                    contentScale = ContentScale.FillWidth
-                )
-            } else {
-                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
-            }
+        val current = bitmap
+        if (current != null) {
+            Image(
+                bitmap = current.asImageBitmap(),
+                contentDescription = "Page ${page.index + 1}",
+                modifier = Modifier.fillMaxWidth(),
+                contentScale = ContentScale.FillWidth
+            )
+        } else {
+            CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
         }
 
         if (isDrawingEnabled) {

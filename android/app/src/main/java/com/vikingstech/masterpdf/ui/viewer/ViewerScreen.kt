@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Bookmark
@@ -47,6 +48,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
@@ -58,6 +60,7 @@ import com.vikingstech.masterpdf.R
 import com.vikingstech.masterpdf.ui.components.EmptyState
 import com.vikingstech.masterpdf.ui.components.StampDesignerDialog
 import com.vikingstech.masterpdf.ui.components.VikingsLoadingBar
+import kotlin.math.roundToInt
 import kotlinx.coroutines.flow.distinctUntilChanged
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -224,46 +227,81 @@ private fun ViewerContent(
             modifier = Modifier.fillMaxSize()
         )
 
-        else -> LazyColumn(
-            state = listState,
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(12.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            items(state.pages, key = { it.index }) { page ->
-                val signature = state.signatureForPlacement
-                val stamp = state.placementStamp
-                val isPlacementTarget = page.index == state.placementPage
-                PdfPageItem(
-                    page = page,
-                    renderRevision = state.renderRevision,
-                    render = viewModel::renderPage,
-                    zoomResetEvents = viewModel.zoomResetEvents,
-                    onZoomChanged = viewModel::onZoomChanged,
-                    strokes = state.pageStrokes[page.index].orEmpty(),
-                    currentPath = if (state.activeDrawPage == page.index) state.currentStrokePath else emptyList(),
-                    strokeColor = state.strokeColor,
-                    strokeWidth = state.strokeWidth,
-                    isDrawingEnabled = state.isDrawingMode,
-                    onPointAdded = { point -> viewModel.addPointToCurrentStroke(page.index, point) },
-                    onStrokeFinished = { viewModel.finishStroke(page.index) },
-                    placementOverlay = {
-                        when {
-                            signature != null && isPlacementTarget -> SignaturePlacerOverlay(
-                                signature = signature,
-                                onCommit = { nx, ny, nw, nh -> viewModel.commitSignature(nx, ny, nw, nh) },
-                                onCancel = viewModel::clearSignaturePlacement
-                            )
-                            stamp != null && isPlacementTarget -> StampPlacerOverlay(
-                                stamp = stamp,
-                                onCommit = { nx, ny, nw, nh -> viewModel.commitStampPlacement(nx, ny, nw, nh) },
-                                onCancel = viewModel::cancelStampPlacement
-                            )
-                        }
+        else -> Box(modifier = Modifier.fillMaxSize()) {
+            // One shared zoom/pan transform for the whole document.
+            ZoomableDocumentBox(
+                zoomResetEvents = viewModel.zoomResetEvents,
+                enabled = !state.isDrawingMode,
+                onZoomChanged = viewModel::onZoomChanged,
+                modifier = Modifier.fillMaxSize()
+            ) {
+                LazyColumn(
+                    state = listState,
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    items(state.pages, key = { it.index }) { page ->
+                        val signature = state.signatureForPlacement
+                        val stamp = state.placementStamp
+                        val isPlacementTarget = page.index == state.placementPage
+                        PdfPageItem(
+                            page = page,
+                            renderRevision = state.renderRevision,
+                            render = viewModel::renderPage,
+                            strokes = state.pageStrokes[page.index].orEmpty(),
+                            currentPath = if (state.activeDrawPage == page.index) state.currentStrokePath else emptyList(),
+                            strokeColor = state.strokeColor,
+                            strokeWidth = state.strokeWidth,
+                            isDrawingEnabled = state.isDrawingMode,
+                            onPointAdded = { point -> viewModel.addPointToCurrentStroke(page.index, point) },
+                            onStrokeFinished = { viewModel.finishStroke(page.index) },
+                            placementOverlay = {
+                                when {
+                                    signature != null && isPlacementTarget -> SignaturePlacerOverlay(
+                                        signature = signature,
+                                        onCommit = { nx, ny, nw, nh -> viewModel.commitSignature(nx, ny, nw, nh) },
+                                        onCancel = viewModel::clearSignaturePlacement
+                                    )
+                                    stamp != null && isPlacementTarget -> StampPlacerOverlay(
+                                        stamp = stamp,
+                                        onCommit = { nx, ny, nw, nh -> viewModel.commitStampPlacement(nx, ny, nw, nh) },
+                                        onCancel = viewModel::cancelStampPlacement
+                                    )
+                                }
+                            }
+                        )
                     }
+                }
+            }
+
+            // Live shared-zoom indicator, painted outside the scaled content.
+            if (state.zoomLevel > 1.05f) {
+                ZoomLevelChip(
+                    zoom = state.zoomLevel,
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(bottom = 16.dp)
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun ZoomLevelChip(zoom: Float, modifier: Modifier = Modifier) {
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(percent = 50),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.92f),
+        tonalElevation = 3.dp
+    ) {
+        Text(
+            text = "${(zoom * 100).roundToInt()}%",
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp)
+        )
     }
 }
 

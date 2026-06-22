@@ -88,7 +88,7 @@ class ViewerViewModel @Inject constructor(
     private val _state = MutableStateFlow(ViewerUiState())
     val state: StateFlow<ViewerUiState> = _state.asStateFlow()
 
-    /** Fires when [ZoomableBox] should snap back to its identity transform. */
+    /** Fires when [ZoomableDocumentBox] should snap back to its identity transform. */
     private val _zoomResetEvents = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
     val zoomResetEvents: SharedFlow<Unit> = _zoomResetEvents.asSharedFlow()
 
