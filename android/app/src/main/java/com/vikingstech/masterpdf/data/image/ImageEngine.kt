@@ -1,7 +1,6 @@
 package com.vikingstech.masterpdf.data.image
 
 import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.Color
 import java.io.File
@@ -20,8 +19,7 @@ enum class ImageFormat(val mime: String, val extension: String) {
 object ImageEngine {
 
     fun reencode(source: File, destination: File, format: ImageFormat, quality: Int) {
-        val decoded = BitmapFactory.decodeFile(source.absolutePath)
-            ?: error("That image could not be read")
+        val decoded = ImageDecoder.load(source)
         val bitmap = if (format == ImageFormat.JPEG && decoded.hasAlpha()) {
             flattenOnWhite(decoded).also { if (it != decoded) decoded.recycle() }
         } else {

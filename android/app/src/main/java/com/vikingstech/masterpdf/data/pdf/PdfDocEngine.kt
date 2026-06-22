@@ -1,15 +1,16 @@
 package com.vikingstech.masterpdf.data.pdf
 
 import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import android.graphics.pdf.PdfRenderer
 import android.os.ParcelFileDescriptor
+import com.vikingstech.masterpdf.data.image.ImageDecoder
 import com.tom_roush.pdfbox.io.MemoryUsageSetting
 import com.tom_roush.pdfbox.pdmodel.PDDocument
 import com.tom_roush.pdfbox.pdmodel.PDPage
 import com.tom_roush.pdfbox.pdmodel.PDPageContentStream
 import com.tom_roush.pdfbox.pdmodel.common.PDRectangle
 import com.tom_roush.pdfbox.pdmodel.encryption.AccessPermission
+import com.tom_roush.pdfbox.pdmodel.encryption.InvalidPasswordException
 import com.tom_roush.pdfbox.pdmodel.encryption.StandardProtectionPolicy
 import com.tom_roush.pdfbox.pdmodel.font.PDType1Font
 import com.tom_roush.pdfbox.pdmodel.graphics.image.LosslessFactory
@@ -41,7 +42,7 @@ object PdfDocEngine {
         PDDocument().use { doc ->
             var added = 0
             for (file in images) {
-                val bmp = BitmapFactory.decodeFile(file.absolutePath) ?: continue
+                val bmp = runCatching { ImageDecoder.load(file) }.getOrNull() ?: continue
                 val page = PDPage(A4)
                 doc.addPage(page)
                 val image = LosslessFactory.createFromImage(doc, bmp)
@@ -232,17 +233,25 @@ object PdfDocEngine {
     }
 
     fun unlock(source: File, destination: File, password: String) {
-        PDDocument.load(source, password, MemoryUsageSetting.setupTempFileOnly()).use { doc ->
-            doc.setAllSecurityToBeRemoved(true)
-            doc.save(destination)
+        val doc = try {
+            PDDocument.load(source, password, MemoryUsageSetting.setupTempFileOnly())
+        } catch (e: InvalidPasswordException) {
+            throw IllegalStateException("Incorrect password — could not unlock this PDF.", e)
+        }
+        doc.use {
+            it.setAllSecurityToBeRemoved(true)
+            it.save(destination)
         }
     }
 
     /** Re-parse and re-save; PdfBox rebuilds the cross-reference table. */
     fun repair(source: File, destination: File) {
-        PDDocument.load(source, MemoryUsageSetting.setupTempFileOnly()).use { doc ->
-            doc.save(destination)
+        val doc = try {
+            PDDocument.load(source, MemoryUsageSetting.setupTempFileOnly())
+        } catch (e: Exception) {
+            throw IllegalStateException("This PDF is too damaged to repair.", e)
         }
+        doc.use { it.save(destination) }
     }
 
     // ── helpers ──────────────────────────────────────────────────────────────

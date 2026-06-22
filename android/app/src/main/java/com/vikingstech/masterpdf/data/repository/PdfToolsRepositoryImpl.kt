@@ -64,8 +64,16 @@ class PdfToolsRepositoryImpl @Inject constructor(
     }
 
     override suspend fun compress(source: String, quality: Float, destination: String) = op {
-        transform(source, "pdf", destination) { src, out ->
+        val src = copyToTemp(source, "compress", "pdf")
+        val out = tempOut("pdf")
+        try {
             PdfBoxManipulator.compressImages(src, out, quality)
+            // Never hand back a file larger than the original (e.g. text-only PDFs
+            // that don't shrink): deliver whichever copy is smaller.
+            val best = if (out.length() in 1 until src.length()) out else src
+            deliver(best, destination)
+        } finally {
+            src.delete(); out.delete()
         }
     }
 

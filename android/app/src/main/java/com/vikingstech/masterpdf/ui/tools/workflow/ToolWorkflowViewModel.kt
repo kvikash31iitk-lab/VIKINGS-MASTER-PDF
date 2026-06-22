@@ -10,6 +10,7 @@ import com.vikingstech.masterpdf.domain.repository.PdfToolsRepository
 import com.vikingstech.masterpdf.domain.util.Resource
 import com.vikingstech.masterpdf.ui.navigation.Routes
 import com.vikingstech.masterpdf.ui.tools.PdfToolId
+import com.vikingstech.masterpdf.ui.tools.ToolIo
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -38,12 +39,24 @@ class ToolWorkflowViewModel @Inject constructor(
         }
     }
 
-    val producesText: Boolean get() = toolId == PdfToolId.EXTRACT_TXT || toolId == PdfToolId.OCR
+    val producesText: Boolean get() = ToolIo.producesText(toolId)
+
+    val allowsMultiple: Boolean get() = ToolIo.allowsMultiple(toolId)
 
     // ── input + options ──────────────────────────────────────────────────────
 
     fun setSources(uris: List<String>, names: List<String>) =
         _state.update { it.copy(sources = uris, sourceNames = names, resultText = null, finished = false) }
+
+    /** Reorder selected inputs (Merge / Image→PDF) so output order is controllable. */
+    fun moveSource(from: Int, to: Int) = _state.update { s ->
+        if (from !in s.sources.indices || to !in s.sources.indices) return@update s
+        val uris = s.sources.toMutableList()
+        val names = s.sourceNames.toMutableList()
+        uris.add(to, uris.removeAt(from))
+        names.add(to, names.removeAt(from))
+        s.copy(sources = uris, sourceNames = names)
+    }
 
     fun setQuality(v: Float) = _state.update { it.copy(quality = v) }
     fun setPassword(v: String) = _state.update { it.copy(password = v) }
@@ -62,12 +75,7 @@ class ToolWorkflowViewModel @Inject constructor(
     /** True when the tool has everything it needs to run. */
     fun canRun(): Boolean {
         val s = _state.value
-        return when (toolId) {
-            PdfToolId.CREATE -> s.createText.isNotBlank()
-            PdfToolId.MERGE -> s.sources.size >= 2
-            PdfToolId.PROTECT, PdfToolId.UNLOCK -> s.sources.isNotEmpty() && s.password.isNotBlank()
-            else -> s.sources.isNotEmpty()
-        }
+        return ToolIo.canRun(toolId, s.sources.size, s.password, s.createText, s.watermarkText)
     }
 
     // ── execution ──────────────────────────────────────────────────────────
@@ -150,64 +158,13 @@ class ToolWorkflowViewModel @Inject constructor(
         }
     }
 
-    // ── SAF descriptors ──────────────────────────────────────────────────────
+    // ── SAF descriptors (delegated to the pure ToolIo spec) ───────────────────
 
-    fun outputMime(): String = when (toolId) {
-        PdfToolId.PDF_TO_WORD -> "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-        PdfToolId.PDF_TO_EXCEL -> "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        PdfToolId.PDF_TO_PPT, PdfToolId.PDF_TO_JPG -> "application/zip"
-        PdfToolId.TO_JPG, PdfToolId.COMPRESS_IMAGE -> "image/jpeg"
-        PdfToolId.FROM_JPG -> "image/png"
-        PdfToolId.EXTRACT_TXT, PdfToolId.OCR -> "text/plain"
-        else -> "application/pdf"
-    }
+    fun outputMime(): String = ToolIo.outputMime(toolId)
 
-    fun defaultFileName(): String = when (toolId) {
-        PdfToolId.MERGE -> "merged.pdf"
-        PdfToolId.SPLIT -> "split.pdf"
-        PdfToolId.COMPRESS -> "compressed.pdf"
-        PdfToolId.PDF_TO_WORD -> "document.docx"
-        PdfToolId.PDF_TO_EXCEL -> "spreadsheet.xlsx"
-        PdfToolId.PDF_TO_PPT -> "slides.zip"
-        PdfToolId.WORD_TO_PDF, PdfToolId.PPT_TO_PDF, PdfToolId.EXCEL_TO_PDF -> "converted.pdf"
-        PdfToolId.PDF_TO_JPG -> "pages.zip"
-        PdfToolId.IMAGE_TO_PDF -> "images.pdf"
-        PdfToolId.PAGE_NUMBERS -> "numbered.pdf"
-        PdfToolId.WATERMARK -> "watermarked.pdf"
-        PdfToolId.ROTATE -> "rotated.pdf"
-        PdfToolId.UNLOCK -> "unlocked.pdf"
-        PdfToolId.PROTECT -> "protected.pdf"
-        PdfToolId.REPAIR -> "repaired.pdf"
-        PdfToolId.CREATE -> "created.pdf"
-        PdfToolId.COMPRESS_IMAGE -> "compressed.jpg"
-        PdfToolId.TO_JPG -> "image.jpg"
-        PdfToolId.FROM_JPG -> "image.png"
-        PdfToolId.EXTRACT_TXT -> "extracted.txt"
-        PdfToolId.OCR -> "ocr.txt"
-        else -> "output.pdf"
-    }
+    fun defaultFileName(): String = ToolIo.defaultFileName(toolId)
 
-    /** MIME filter(s) for the input picker. */
-    fun inputMimeTypes(): Array<String> = when (toolId) {
-        PdfToolId.IMAGE_TO_PDF, PdfToolId.COMPRESS_IMAGE, PdfToolId.TO_JPG, PdfToolId.FROM_JPG ->
-            arrayOf("image/*")
-        PdfToolId.WORD_TO_PDF ->
-            arrayOf(
-                "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-                "application/msword", "text/plain", "application/rtf", "text/rtf"
-            )
-        PdfToolId.PPT_TO_PDF ->
-            arrayOf(
-                "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-                "application/vnd.ms-powerpoint"
-            )
-        PdfToolId.EXCEL_TO_PDF ->
-            arrayOf(
-                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                "application/vnd.ms-excel", "text/csv", "text/comma-separated-values"
-            )
-        else -> arrayOf("application/pdf")
-    }
+    fun inputMimeTypes(): Array<String> = ToolIo.inputMimeTypes(toolId)
 
     private fun fileLabel(uri: String): String =
         uri.substringAfterLast('/').substringAfterLast("%2F").ifBlank { "Selected file" }

@@ -21,6 +21,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.UploadFile
 import androidx.compose.material3.Button
@@ -84,8 +86,6 @@ fun ToolWorkflowScreen(
         }
     }
 
-    val allowMultiple = state.toolId == PdfToolId.MERGE || state.toolId == PdfToolId.IMAGE_TO_PDF
-
     val pickSingle = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         uri?.let {
             persist(context, it)
@@ -106,7 +106,7 @@ fun ToolWorkflowScreen(
     ) { uri -> uri?.let { viewModel.saveResultText(it.toString()) } }
 
     fun launchPicker() {
-        if (allowMultiple) pickMultiple.launch(viewModel.inputMimeTypes())
+        if (viewModel.allowsMultiple) pickMultiple.launch(viewModel.inputMimeTypes())
         else pickSingle.launch(viewModel.inputMimeTypes())
     }
 
@@ -138,7 +138,13 @@ fun ToolWorkflowScreen(
                 )
 
                 if (tool.input != ToolInput.NONE) {
-                    SourceSection(state = state, input = tool.input, onPick = { launchPicker() })
+                    SourceSection(
+                        state = state,
+                        input = tool.input,
+                        allowsReorder = viewModel.allowsMultiple,
+                        onPick = { launchPicker() },
+                        onMove = viewModel::moveSource
+                    )
                 }
 
                 OptionsSection(state, viewModel)
@@ -184,7 +190,13 @@ fun ToolWorkflowScreen(
 }
 
 @Composable
-private fun SourceSection(state: ToolWorkflowUiState, input: ToolInput, onPick: () -> Unit) {
+private fun SourceSection(
+    state: ToolWorkflowUiState,
+    input: ToolInput,
+    allowsReorder: Boolean,
+    onPick: () -> Unit,
+    onMove: (Int, Int) -> Unit
+) {
     val labelRes = when (input) {
         ToolInput.MULTI_PDF -> R.string.twf_pick_pdfs
         ToolInput.IMAGES -> R.string.twf_pick_images
@@ -211,8 +223,30 @@ private fun SourceSection(state: ToolWorkflowUiState, input: ToolInput, onPick: 
                     text = stringResource(R.string.twf_selected_count, state.sources.size),
                     style = MaterialTheme.typography.labelMedium
                 )
-                state.sourceNames.take(6).forEach { name ->
-                    Text("• $name", style = MaterialTheme.typography.bodySmall, maxLines = 1)
+                if (allowsReorder && state.sources.size > 1) {
+                    state.sourceNames.forEachIndexed { index, name ->
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = "${index + 1}. $name",
+                                style = MaterialTheme.typography.bodySmall,
+                                maxLines = 1,
+                                modifier = Modifier.weight(1f)
+                            )
+                            IconButton(onClick = { onMove(index, index - 1) }, enabled = index > 0) {
+                                Icon(Icons.Filled.KeyboardArrowUp, contentDescription = stringResource(R.string.cd_drag_handle))
+                            }
+                            IconButton(
+                                onClick = { onMove(index, index + 1) },
+                                enabled = index < state.sources.size - 1
+                            ) {
+                                Icon(Icons.Filled.KeyboardArrowDown, contentDescription = stringResource(R.string.cd_drag_handle))
+                            }
+                        }
+                    }
+                } else {
+                    state.sourceNames.take(8).forEach { name ->
+                        Text("• $name", style = MaterialTheme.typography.bodySmall, maxLines = 1)
+                    }
                 }
             }
         }
@@ -318,9 +352,15 @@ private fun LabeledSlider(
 
 @Composable
 private fun IntField(label: String, value: Int, onChange: (Int) -> Unit) {
+    // Local text state so the user can clear/retype freely; only valid values
+    // propagate up (a controlled Int field would reject the empty intermediate).
+    var text by remember { mutableStateOf(value.toString()) }
     OutlinedTextField(
-        value = value.toString(),
-        onValueChange = { it.toIntOrNull()?.let(onChange) },
+        value = text,
+        onValueChange = { input ->
+            text = input.filter { it.isDigit() }.take(6)
+            text.toIntOrNull()?.let(onChange)
+        },
         label = { Text(label) },
         singleLine = true,
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
@@ -330,9 +370,13 @@ private fun IntField(label: String, value: Int, onChange: (Int) -> Unit) {
 
 @Composable
 private fun FloatField(label: String, value: Float, onChange: (Float) -> Unit) {
+    var text by remember { mutableStateOf(value.roundToInt().toString()) }
     OutlinedTextField(
-        value = value.roundToInt().toString(),
-        onValueChange = { it.toFloatOrNull()?.let(onChange) },
+        value = text,
+        onValueChange = { input ->
+            text = input.filter { it.isDigit() }.take(3)
+            text.toFloatOrNull()?.let(onChange)
+        },
         label = { Text(label) },
         singleLine = true,
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),

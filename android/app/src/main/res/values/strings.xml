@@ -151,7 +151,7 @@
     <string name="tool_split_desc">Extract a page range into a new PDF.</string>
     <string name="tool_compress_desc">Reduce PDF file size.</string>
     <string name="tool_pdf_to_word_desc">Convert PDF text to an editable Word file.</string>
-    <string name="tool_pdf_to_ppt_desc">Turn each PDF page into a slide.</string>
+    <string name="tool_pdf_to_ppt_desc">Export pages as a slide image package (.zip).</string>
     <string name="tool_pdf_to_excel_desc">Extract PDF text into a spreadsheet.</string>
     <string name="tool_word_to_pdf_desc">Convert Word documents to PDF.</string>
     <string name="tool_ppt_to_pdf_desc">Convert presentations to PDF.</string>
