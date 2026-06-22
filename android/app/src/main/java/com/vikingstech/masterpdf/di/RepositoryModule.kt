@@ -4,6 +4,7 @@ import com.vikingstech.masterpdf.data.repository.AiRepositoryImpl
 import com.vikingstech.masterpdf.data.repository.BookmarkRepositoryImpl
 import com.vikingstech.masterpdf.data.repository.CustomStampRepositoryImpl
 import com.vikingstech.masterpdf.data.repository.DocumentRepositoryImpl
+import com.vikingstech.masterpdf.data.repository.PdfToolsRepositoryImpl
 import com.vikingstech.masterpdf.data.repository.RecentsRepositoryImpl
 import com.vikingstech.masterpdf.data.repository.SettingsRepositoryImpl
 import com.vikingstech.masterpdf.data.repository.SignatureRepositoryImpl
@@ -12,6 +13,7 @@ import com.vikingstech.masterpdf.domain.repository.AiRepository
 import com.vikingstech.masterpdf.domain.repository.BookmarkRepository
 import com.vikingstech.masterpdf.domain.repository.CustomStampRepository
 import com.vikingstech.masterpdf.domain.repository.DocumentRepository
+import com.vikingstech.masterpdf.domain.repository.PdfToolsRepository
 import com.vikingstech.masterpdf.domain.repository.RecentsRepository
 import com.vikingstech.masterpdf.domain.repository.SettingsRepository
 import com.vikingstech.masterpdf.domain.repository.SignatureRepository
@@ -28,6 +30,9 @@ abstract class RepositoryModule {
 
     @Binds @Singleton
     abstract fun bindDocumentRepository(impl: DocumentRepositoryImpl): DocumentRepository
+
+    @Binds @Singleton
+    abstract fun bindPdfToolsRepository(impl: PdfToolsRepositoryImpl): PdfToolsRepository
 
     @Binds @Singleton
     abstract fun bindRecentsRepository(impl: RecentsRepositoryImpl): RecentsRepository

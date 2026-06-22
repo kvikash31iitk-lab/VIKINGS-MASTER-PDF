@@ -108,6 +108,106 @@
     <string name="settings_test_fail">Connection failed: %1$s</string>
     <string name="settings_test_no_url">Set an endpoint URL first</string>
 
+    <!-- Tools hub -->
+    <string name="tools_hub_title">PDF Tools</string>
+    <string name="tools_search">Search tools</string>
+    <string name="tools_search_hint">Search tools…</string>
+    <string name="tools_section_pdf">PDF tools</string>
+    <string name="tools_section_image">Image tools</string>
+    <string name="tools_no_results">No tools match your search</string>
+    <string name="tools_grid_view">Grid view</string>
+    <string name="tools_list_view">List view</string>
+
+    <!-- Tool titles -->
+    <string name="tool_merge_title">Merge PDF</string>
+    <string name="tool_split_title">Split PDF</string>
+    <string name="tool_compress_title">Compress PDF</string>
+    <string name="tool_pdf_to_word_title">PDF to Word</string>
+    <string name="tool_pdf_to_ppt_title">PDF to PowerPoint</string>
+    <string name="tool_pdf_to_excel_title">PDF to Excel</string>
+    <string name="tool_word_to_pdf_title">Word to PDF</string>
+    <string name="tool_ppt_to_pdf_title">PowerPoint to PDF</string>
+    <string name="tool_excel_to_pdf_title">Excel to PDF</string>
+    <string name="tool_edit_title">Edit PDF</string>
+    <string name="tool_pdf_to_jpg_title">PDF to JPG</string>
+    <string name="tool_image_to_pdf_title">Image to PDF</string>
+    <string name="tool_page_numbers_title">Page Numbers</string>
+    <string name="tool_watermark_title">Watermark</string>
+    <string name="tool_rotate_title">Rotate PDF</string>
+    <string name="tool_unlock_title">Unlock PDF</string>
+    <string name="tool_protect_title">Protect PDF</string>
+    <string name="tool_organize_title">Organize PDF</string>
+    <string name="tool_repair_title">Repair PDF</string>
+    <string name="tool_sign_title">Sign PDF</string>
+    <string name="tool_extract_txt_title">Extract TXT</string>
+    <string name="tool_create_title">Create PDF</string>
+    <string name="tool_ocr_title">OCR PDF</string>
+    <string name="tool_compress_image_title">Compress Image</string>
+    <string name="tool_to_jpg_title">Convert to JPG</string>
+    <string name="tool_from_jpg_title">Convert from JPG</string>
+
+    <!-- Tool descriptions -->
+    <string name="tool_merge_desc">Combine multiple PDFs into one.</string>
+    <string name="tool_split_desc">Extract a page range into a new PDF.</string>
+    <string name="tool_compress_desc">Reduce PDF file size.</string>
+    <string name="tool_pdf_to_word_desc">Convert PDF text to an editable Word file.</string>
+    <string name="tool_pdf_to_ppt_desc">Turn each PDF page into a slide.</string>
+    <string name="tool_pdf_to_excel_desc">Extract PDF text into a spreadsheet.</string>
+    <string name="tool_word_to_pdf_desc">Convert Word documents to PDF.</string>
+    <string name="tool_ppt_to_pdf_desc">Convert presentations to PDF.</string>
+    <string name="tool_excel_to_pdf_desc">Convert spreadsheets to PDF.</string>
+    <string name="tool_edit_desc">Annotate, draw and fill in the editor.</string>
+    <string name="tool_pdf_to_jpg_desc">Save each page as a JPG image.</string>
+    <string name="tool_image_to_pdf_desc">Combine images into a PDF.</string>
+    <string name="tool_page_numbers_desc">Stamp page numbers onto a PDF.</string>
+    <string name="tool_watermark_desc">Add a text watermark to every page.</string>
+    <string name="tool_rotate_desc">Rotate all pages 90, 180 or 270°.</string>
+    <string name="tool_unlock_desc">Remove the password from a PDF.</string>
+    <string name="tool_protect_desc">Encrypt a PDF with a password.</string>
+    <string name="tool_organize_desc">Reorder and delete pages.</string>
+    <string name="tool_repair_desc">Rebuild a damaged PDF.</string>
+    <string name="tool_sign_desc">Place your signature on a PDF.</string>
+    <string name="tool_extract_txt_desc">Pull out the embedded text.</string>
+    <string name="tool_create_desc">Make a PDF from your text.</string>
+    <string name="tool_ocr_desc">Recognize text in scanned pages.</string>
+    <string name="tool_compress_image_desc">Shrink an image file.</string>
+    <string name="tool_to_jpg_desc">Convert an image to JPG.</string>
+    <string name="tool_from_jpg_desc">Convert a JPG to PNG.</string>
+
+    <!-- Tool workflow -->
+    <string name="twf_pick_pdf">Select PDF</string>
+    <string name="twf_pick_pdfs">Select PDFs</string>
+    <string name="twf_pick_images">Select images</string>
+    <string name="twf_pick_office">Select file</string>
+    <string name="twf_change_file">Change file</string>
+    <string name="twf_selected_count">%1$d file(s) selected</string>
+    <string name="twf_no_source">Select a file to continue.</string>
+    <string name="twf_run">Run &amp; Save</string>
+    <string name="twf_run_text">Run</string>
+    <string name="twf_save_txt">Save as .txt</string>
+    <string name="twf_copy">Copy</string>
+    <string name="twf_share">Share</string>
+    <string name="twf_password">Password</string>
+    <string name="twf_quality">Quality</string>
+    <string name="twf_rotation">Rotation</string>
+    <string name="twf_opacity">Opacity</string>
+    <string name="twf_position">Position</string>
+    <string name="twf_start_number">Start number</string>
+    <string name="twf_font_size">Font size</string>
+    <string name="twf_page_range">Pages (e.g. 1-3,5)</string>
+    <string name="twf_watermark_text">Watermark text</string>
+    <string name="twf_create_hint">Type your content…</string>
+    <string name="twf_processing">Working…</string>
+    <string name="twf_success">Saved successfully.</string>
+    <string name="twf_copied">Copied to clipboard</string>
+    <string name="twf_empty_text">Enter some text first.</string>
+    <string name="twf_pos_bottom_center">Bottom center</string>
+    <string name="twf_pos_bottom_right">Bottom right</string>
+    <string name="twf_pos_top_center">Top center</string>
+    <string name="twf_pos_top_right">Top right</string>
+    <string name="twf_note_pptx">Slides are exported as an image package (.zip), one image per page.</string>
+    <string name="twf_note_ocr">Recognized text is shown below; save it as a .txt file.</string>
+
     <!-- Generic -->
     <string name="cd_back">Back</string>
     <string name="cd_close">Close</string>
