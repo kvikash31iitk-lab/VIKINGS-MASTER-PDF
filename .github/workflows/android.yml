@@ -16,6 +16,8 @@ jobs:
   build:
     name: Assemble · Lint (Android)
     runs-on: ubuntu-latest
+    permissions:
+      contents: write   # needed to publish the APK to Releases
     defaults:
       run:
         working-directory: android
@@ -57,3 +59,19 @@ jobs:
           name: vikings-master-pdf-debug-apk
           path: android/app/build/outputs/apk/debug/*.apk
           retention-days: 14
+
+      # Publish to a permanent, login-free download link under Releases.
+      # Uses a moving "debug-latest" tag, so the URL never changes:
+      #   https://github.com/<owner>/<repo>/releases/download/debug-latest/app-debug.apk
+      - name: Publish debug APK to Releases
+        if: github.event_name == 'push'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: debug-latest
+          name: Debug APK (latest)
+          prerelease: true
+          files: android/app/build/outputs/apk/debug/app-debug.apk
+          body: |
+            Automatically published debug build.
+            Commit: ${{ github.sha }}
+            Branch: ${{ github.ref_name }}
