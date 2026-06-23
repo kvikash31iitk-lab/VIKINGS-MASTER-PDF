@@ -1,5 +1,6 @@
 package com.vikingstech.masterpdf.ui.viewer
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectDragGestures
@@ -15,9 +16,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.OpenInFull
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -27,10 +30,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
@@ -74,6 +80,7 @@ fun StampPlacerOverlay(
                     width = with(density) { widthPx.toDp() },
                     height = with(density) { heightPx.toDp() }
                 )
+                .shadow(4.dp, RoundedCornerShape(stamp.borderRadius.dp))
                 .background(stamp.backgroundColor, RoundedCornerShape(stamp.borderRadius.dp))
                 .border(
                     width = stamp.borderWidth.dp,
@@ -93,13 +100,22 @@ fun StampPlacerOverlay(
                 text = stamp.text,
                 color = stamp.textColor,
                 fontSize = stamp.fontSize.sp,
-                textAlign = TextAlign.Center
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(horizontal = 8.dp)
             )
+
+            // Crop-mark decorations.
+            Box(modifier = Modifier.align(Alignment.TopStart).size(5.dp).background(MaterialTheme.colorScheme.primary, CircleShape))
+            Box(modifier = Modifier.align(Alignment.TopEnd).size(5.dp).background(MaterialTheme.colorScheme.primary, CircleShape))
+            Box(modifier = Modifier.align(Alignment.BottomStart).size(5.dp).background(MaterialTheme.colorScheme.primary, CircleShape))
+
             // Resize handle (bottom-right corner).
             Box(
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
+                    .offset(6.dp, 6.dp)
                     .size(28.dp)
+                    .shadow(4.dp, CircleShape)
                     .background(MaterialTheme.colorScheme.primary, CircleShape)
                     .pointerInput(Unit) {
                         detectDragGestures { change, drag ->
@@ -113,34 +129,62 @@ fun StampPlacerOverlay(
                 Icon(
                     Icons.Filled.OpenInFull,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onPrimary,
-                    modifier = Modifier.size(16.dp)
+                    tint = Color.White,
+                    modifier = Modifier.size(14.dp)
                 )
             }
         }
 
         // Floating action bar.
-        Row(
+        Surface(
+            shape = RoundedCornerShape(16.dp),
+            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)),
+            shadowElevation = 6.dp,
             modifier = Modifier
                 .align(Alignment.TopCenter)
-                .padding(12.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                .padding(16.dp)
         ) {
-            OutlinedButton(onClick = onCancel) { Text(stringResource(R.string.generic_cancel)) }
-            Button(
-                onClick = {
-                    val c = containerSize
-                    if (c.width > 0 && c.height > 0) {
-                        onCommit(
-                            offsetX / c.width,
-                            offsetY / c.height,
-                            widthPx / c.width,
-                            heightPx / c.height
-                        )
-                    }
-                }
+            Row(
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(stringResource(R.string.viewer_apply))
+                OutlinedButton(
+                    onClick = onCancel,
+                    shape = RoundedCornerShape(10.dp),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
+                ) {
+                    Text(
+                        text = stringResource(R.string.generic_cancel),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Button(
+                    onClick = {
+                        val c = containerSize
+                        if (c.width > 0 && c.height > 0) {
+                            onCommit(
+                                offsetX / c.width,
+                                offsetY / c.height,
+                                widthPx / c.width,
+                                heightPx / c.height
+                            )
+                        }
+                    },
+                    shape = RoundedCornerShape(10.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = Color.White
+                    )
+                ) {
+                    Text(
+                        text = stringResource(R.string.viewer_apply),
+                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.labelMedium
+                    )
+                }
             }
         }
     }

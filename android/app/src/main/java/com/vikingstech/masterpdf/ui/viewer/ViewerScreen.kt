@@ -1,17 +1,33 @@
 package com.vikingstech.masterpdf.ui.viewer
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -30,18 +46,22 @@ import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.ZoomOutMap
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
+import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Slider
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -50,8 +70,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -60,7 +85,6 @@ import com.vikingstech.masterpdf.R
 import com.vikingstech.masterpdf.ui.components.EmptyState
 import com.vikingstech.masterpdf.ui.components.StampDesignerDialog
 import com.vikingstech.masterpdf.ui.components.VikingsLoadingBar
-import kotlin.math.roundToInt
 import kotlinx.coroutines.flow.distinctUntilChanged
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -77,6 +101,7 @@ fun ViewerScreen(
     val snackbar = remember { SnackbarHostState() }
 
     val currentPage = listState.firstVisibleItemIndex
+    var immersiveMode by remember { mutableStateOf(false) }
 
     // Persist scroll position for "Continue Reading".
     LaunchedEffect(listState) {
@@ -96,38 +121,23 @@ fun ViewerScreen(
         }
     }
 
-    Scaffold(
-        topBar = {
-            ViewerTopBar(
-                title = state.document?.name ?: stringResource(R.string.viewer_loading),
-                pageLabel = state.document?.let { "${currentPage + 1}/${it.pageCount}" },
-                showPageLabel = !state.isDrawingMode,
-                zoomedIn = state.zoomLevel > 1.05f,
-                bookmarkCount = state.bookmarks.size,
-                hasForms = state.formFields.isNotEmpty(),
-                aiActive = state.showAiPanel,
-                onBack = onBack,
-                onResetZoom = viewModel::resetZoom,
-                onBookmarks = viewModel::toggleBookmarkPanel,
-                onAi = viewModel::toggleAiPanel,
-                onDraw = viewModel::toggleDrawingMode,
-                onSignature = viewModel::toggleSignatureCapture,
-                onStamps = viewModel::toggleStampPicker,
-                onForms = viewModel::toggleFormPanel,
-                onTools = { state.document?.uri?.let(onOpenTools) }
-            )
-        },
-        bottomBar = {
-            if (state.isDrawingMode) DrawingToolbar(viewModel)
-        },
-        snackbarHost = { SnackbarHost(snackbar) }
-    ) { padding ->
-        Box(modifier = Modifier.fillMaxSize().padding(padding)) {
+    Scaffold(snackbarHost = { SnackbarHost(snackbar) }) { padding ->
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .background(MaterialTheme.colorScheme.background)
+        ) {
             Row(modifier = Modifier.fillMaxSize()) {
                 val phoneAiTakeover = state.showAiPanel && !isTablet
                 if (!phoneAiTakeover) {
                     Box(modifier = Modifier.weight(1f).fillMaxSize()) {
-                        ViewerContent(state, listState, viewModel)
+                        ViewerContent(
+                            state = state,
+                            listState = listState,
+                            viewModel = viewModel,
+                            onToggleImmersive = { immersiveMode = !immersiveMode }
+                        )
                     }
                 }
 
@@ -165,6 +175,95 @@ fun ViewerScreen(
                             Modifier.weight(1f).fillMaxSize()
                         }
                     )
+                }
+            }
+
+            // Floating top app bar with slide transitions (immersive-aware).
+            AnimatedVisibility(
+                visible = !immersiveMode,
+                enter = slideInVertically(animationSpec = spring(dampingRatio = 0.8f, stiffness = 300f)) { -it } + fadeIn(),
+                exit = slideOutVertically(animationSpec = spring(dampingRatio = 0.8f, stiffness = 300f)) { -it } + fadeOut(),
+                modifier = Modifier.align(Alignment.TopCenter)
+            ) {
+                ViewerTopBar(
+                    title = state.document?.name ?: stringResource(R.string.viewer_loading),
+                    pageLabel = state.document?.let { "${currentPage + 1}/${it.pageCount}" },
+                    showPageLabel = false, // shown by the bottom indicator pill
+                    zoomedIn = state.zoomLevel > 1.05f,
+                    bookmarkCount = state.bookmarks.size,
+                    hasForms = state.formFields.isNotEmpty(),
+                    aiActive = state.showAiPanel,
+                    onBack = onBack,
+                    onResetZoom = viewModel::resetZoom,
+                    onBookmarks = viewModel::toggleBookmarkPanel,
+                    onAi = viewModel::toggleAiPanel,
+                    onDraw = viewModel::toggleDrawingMode,
+                    onSignature = viewModel::toggleSignatureCapture,
+                    onStamps = viewModel::toggleStampPicker,
+                    onForms = viewModel::toggleFormPanel,
+                    onTools = { state.document?.uri?.let(onOpenTools) }
+                )
+            }
+
+            // Floating markup dock while drawing.
+            AnimatedVisibility(
+                visible = !immersiveMode && state.isDrawingMode,
+                enter = slideInVertically(animationSpec = spring(dampingRatio = 0.8f, stiffness = 300f)) { it } + fadeIn(),
+                exit = slideOutVertically(animationSpec = spring(dampingRatio = 0.8f, stiffness = 300f)) { it } + fadeOut(),
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 16.dp)
+            ) {
+                DrawingDock(
+                    currentColor = state.strokeColor,
+                    currentWidth = state.strokeWidth,
+                    onColorSelected = viewModel::setStrokeColor,
+                    onWidthSelected = viewModel::setStrokeWidth,
+                    onClear = viewModel::clearStrokes,
+                    onApply = viewModel::commitStrokes,
+                    onClose = viewModel::toggleDrawingMode
+                )
+            }
+
+            // Floating page & zoom indicator pill.
+            AnimatedVisibility(
+                visible = !immersiveMode && !state.isDrawingMode,
+                enter = fadeIn(),
+                exit = fadeOut(),
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(16.dp)
+            ) {
+                Surface(
+                    shape = RoundedCornerShape(99.dp),
+                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)),
+                    shadowElevation = 4.dp
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            text = "Page ${currentPage + 1} of ${state.pages.size}",
+                            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Box(
+                            modifier = Modifier
+                                .size(width = 1.dp, height = 12.dp)
+                                .background(MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
+                        )
+                        Text(
+                            text = "${(state.zoomLevel * 100).toInt()}%",
+                            style = MaterialTheme.typography.labelMedium.copy(
+                                fontFamily = FontFamily.Monospace,
+                                fontWeight = FontWeight.Bold
+                            ),
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
                 }
             }
         }
@@ -212,8 +311,11 @@ fun ViewerScreen(
 private fun ViewerContent(
     state: ViewerUiState,
     listState: androidx.compose.foundation.lazy.LazyListState,
-    viewModel: ViewerViewModel
+    viewModel: ViewerViewModel,
+    onToggleImmersive: () -> Unit
 ) {
+    val interactionSource = remember { MutableInteractionSource() }
+
     when {
         state.isLoading -> VikingsLoadingBar(
             modifier = Modifier.fillMaxSize(),
@@ -227,81 +329,60 @@ private fun ViewerContent(
             modifier = Modifier.fillMaxSize()
         )
 
-        else -> Box(modifier = Modifier.fillMaxSize()) {
+        else -> ZoomableDocumentBox(
             // One shared zoom/pan transform for the whole document.
-            ZoomableDocumentBox(
-                zoomResetEvents = viewModel.zoomResetEvents,
-                enabled = !state.isDrawingMode,
-                onZoomChanged = viewModel::onZoomChanged,
-                modifier = Modifier.fillMaxSize()
+            zoomResetEvents = viewModel.zoomResetEvents,
+            enabled = !state.isDrawingMode,
+            onZoomChanged = viewModel::onZoomChanged,
+            modifier = Modifier.fillMaxSize()
+        ) {
+            LazyColumn(
+                state = listState,
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(top = 84.dp, bottom = 96.dp, start = 12.dp, end = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                LazyColumn(
-                    state = listState,
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    items(state.pages, key = { it.index }) { page ->
-                        val signature = state.signatureForPlacement
-                        val stamp = state.placementStamp
-                        val isPlacementTarget = page.index == state.placementPage
-                        PdfPageItem(
-                            page = page,
-                            renderRevision = state.renderRevision,
-                            render = viewModel::renderPage,
-                            strokes = state.pageStrokes[page.index].orEmpty(),
-                            currentPath = if (state.activeDrawPage == page.index) state.currentStrokePath else emptyList(),
-                            strokeColor = state.strokeColor,
-                            strokeWidth = state.strokeWidth,
-                            isDrawingEnabled = state.isDrawingMode,
-                            onPointAdded = { point -> viewModel.addPointToCurrentStroke(page.index, point) },
-                            onStrokeFinished = { viewModel.finishStroke(page.index) },
-                            placementOverlay = {
-                                when {
-                                    signature != null && isPlacementTarget -> SignaturePlacerOverlay(
-                                        signature = signature,
-                                        onCommit = { nx, ny, nw, nh -> viewModel.commitSignature(nx, ny, nw, nh) },
-                                        onCancel = viewModel::clearSignaturePlacement
-                                    )
-                                    stamp != null && isPlacementTarget -> StampPlacerOverlay(
-                                        stamp = stamp,
-                                        onCommit = { nx, ny, nw, nh -> viewModel.commitStampPlacement(nx, ny, nw, nh) },
-                                        onCancel = viewModel::cancelStampPlacement
-                                    )
-                                }
+                items(state.pages, key = { it.index }) { page ->
+                    val signature = state.signatureForPlacement
+                    val stamp = state.placementStamp
+                    val isPlacementTarget = page.index == state.placementPage
+                    PdfPageItem(
+                        page = page,
+                        renderRevision = state.renderRevision,
+                        render = viewModel::renderPage,
+                        strokes = state.pageStrokes[page.index].orEmpty(),
+                        currentPath = if (state.activeDrawPage == page.index) state.currentStrokePath else emptyList(),
+                        strokeColor = state.strokeColor,
+                        strokeWidth = state.strokeWidth,
+                        isDrawingEnabled = state.isDrawingMode,
+                        onPointAdded = { point -> viewModel.addPointToCurrentStroke(page.index, point) },
+                        onStrokeFinished = { viewModel.finishStroke(page.index) },
+                        placementOverlay = {
+                            when {
+                                signature != null && isPlacementTarget -> SignaturePlacerOverlay(
+                                    signature = signature,
+                                    onCommit = { nx, ny, nw, nh -> viewModel.commitSignature(nx, ny, nw, nh) },
+                                    onCancel = viewModel::clearSignaturePlacement
+                                )
+                                stamp != null && isPlacementTarget -> StampPlacerOverlay(
+                                    stamp = stamp,
+                                    onCommit = { nx, ny, nw, nh -> viewModel.commitStampPlacement(nx, ny, nw, nh) },
+                                    onCancel = viewModel::cancelStampPlacement
+                                )
                             }
-                        )
-                    }
+                        },
+                        modifier = Modifier
+                            .shadow(2.dp, RoundedCornerShape(4.dp))
+                            .clickable(
+                                interactionSource = interactionSource,
+                                indication = null,
+                                enabled = !state.isDrawingMode,
+                                onClick = onToggleImmersive
+                            )
+                    )
                 }
             }
-
-            // Live shared-zoom indicator, painted outside the scaled content.
-            if (state.zoomLevel > 1.05f) {
-                ZoomLevelChip(
-                    zoom = state.zoomLevel,
-                    modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .padding(bottom = 16.dp)
-                )
-            }
         }
-    }
-}
-
-@Composable
-private fun ZoomLevelChip(zoom: Float, modifier: Modifier = Modifier) {
-    Surface(
-        modifier = modifier,
-        shape = RoundedCornerShape(percent = 50),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.92f),
-        tonalElevation = 3.dp
-    ) {
-        Text(
-            text = "${(zoom * 100).roundToInt()}%",
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp)
-        )
     }
 }
 
@@ -327,93 +408,223 @@ private fun ViewerTopBar(
 ) {
     var menuOpen by remember { mutableStateOf(false) }
 
-    TopAppBar(
-        title = { Text(text = title, maxLines = 1, overflow = TextOverflow.Ellipsis) },
-        navigationIcon = {
-            IconButton(onClick = onBack) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.cd_back))
-            }
-        },
-        actions = {
-            if (showPageLabel && pageLabel != null) {
-                Text(
-                    text = pageLabel,
-                    style = MaterialTheme.typography.labelLarge,
-                    modifier = Modifier.padding(end = 8.dp)
-                )
-            }
-            if (zoomedIn) {
-                IconButton(onClick = onResetZoom) {
-                    Icon(Icons.Filled.ZoomOutMap, contentDescription = stringResource(R.string.viewer_zoom_reset))
+    Surface(
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
+        tonalElevation = 4.dp,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        TopAppBar(
+            title = { Text(text = title, maxLines = 1, overflow = TextOverflow.Ellipsis, fontWeight = FontWeight.Bold) },
+            navigationIcon = {
+                IconButton(onClick = onBack) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.cd_back))
                 }
-            }
-            IconButton(onClick = onBookmarks) {
-                BadgedBox(badge = { if (bookmarkCount > 0) Badge { Text("$bookmarkCount") } }) {
-                    Icon(Icons.Filled.Bookmark, contentDescription = stringResource(R.string.viewer_bookmarks))
-                }
-            }
-            IconButton(onClick = onAi) {
-                Icon(
-                    Icons.Filled.SmartToy,
-                    contentDescription = stringResource(R.string.viewer_ai),
-                    tint = if (aiActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            IconButton(onClick = { menuOpen = true }) {
-                Icon(Icons.Filled.MoreVert, contentDescription = stringResource(R.string.viewer_more))
-            }
-            DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.viewer_draw)) },
-                    leadingIcon = { Icon(Icons.Filled.Gesture, contentDescription = null) },
-                    onClick = { menuOpen = false; onDraw() }
-                )
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.viewer_signature)) },
-                    leadingIcon = { Icon(Icons.Filled.Draw, contentDescription = null) },
-                    onClick = { menuOpen = false; onSignature() }
-                )
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.viewer_stamps)) },
-                    leadingIcon = { Icon(Icons.Filled.LocalOffer, contentDescription = null) },
-                    onClick = { menuOpen = false; onStamps() }
-                )
-                if (hasForms) {
-                    DropdownMenuItem(
-                        text = { Text(stringResource(R.string.viewer_forms)) },
-                        leadingIcon = { Icon(Icons.Filled.TextFields, contentDescription = null) },
-                        onClick = { menuOpen = false; onForms() }
+            },
+            colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
+            actions = {
+                if (showPageLabel && pageLabel != null) {
+                    Text(
+                        text = pageLabel,
+                        style = MaterialTheme.typography.labelLarge,
+                        modifier = Modifier.padding(end = 8.dp)
                     )
                 }
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.viewer_tools)) },
-                    leadingIcon = { Icon(Icons.Filled.Tune, contentDescription = null) },
-                    onClick = { menuOpen = false; onTools() }
-                )
+                if (zoomedIn) {
+                    IconButton(onClick = onResetZoom) {
+                        Icon(Icons.Filled.ZoomOutMap, contentDescription = stringResource(R.string.viewer_zoom_reset))
+                    }
+                }
+                IconButton(onClick = onBookmarks) {
+                    BadgedBox(badge = { if (bookmarkCount > 0) Badge { Text("$bookmarkCount") } }) {
+                        Icon(Icons.Filled.Bookmark, contentDescription = stringResource(R.string.viewer_bookmarks))
+                    }
+                }
+                IconButton(onClick = onAi) {
+                    Icon(
+                        Icons.Filled.SmartToy,
+                        contentDescription = stringResource(R.string.viewer_ai),
+                        tint = if (aiActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                IconButton(onClick = { menuOpen = true }) {
+                    Icon(Icons.Filled.MoreVert, contentDescription = stringResource(R.string.viewer_more))
+                }
+                DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.viewer_draw)) },
+                        leadingIcon = { Icon(Icons.Filled.Gesture, contentDescription = null) },
+                        onClick = { menuOpen = false; onDraw() }
+                    )
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.viewer_signature)) },
+                        leadingIcon = { Icon(Icons.Filled.Draw, contentDescription = null) },
+                        onClick = { menuOpen = false; onSignature() }
+                    )
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.viewer_stamps)) },
+                        leadingIcon = { Icon(Icons.Filled.LocalOffer, contentDescription = null) },
+                        onClick = { menuOpen = false; onStamps() }
+                    )
+                    if (hasForms) {
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.viewer_forms)) },
+                            leadingIcon = { Icon(Icons.Filled.TextFields, contentDescription = null) },
+                            onClick = { menuOpen = false; onForms() }
+                        )
+                    }
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.viewer_tools)) },
+                        leadingIcon = { Icon(Icons.Filled.Tune, contentDescription = null) },
+                        onClick = { menuOpen = false; onTools() }
+                    )
+                }
             }
-        }
-    )
+        )
+    }
 }
 
 @Composable
-private fun DrawingToolbar(viewModel: ViewerViewModel) {
+private fun DrawingDock(
+    currentColor: Color,
+    currentWidth: Float,
+    onColorSelected: (Color) -> Unit,
+    onWidthSelected: (Float) -> Unit,
+    onClear: () -> Unit,
+    onApply: () -> Unit,
+    onClose: () -> Unit
+) {
     Surface(
-        modifier = Modifier.fillMaxWidth(),
-        color = MaterialTheme.colorScheme.surface,
-        tonalElevation = 8.dp
+        modifier = Modifier
+            .padding(16.dp)
+            .shadow(12.dp, RoundedCornerShape(24.dp))
+            .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f), RoundedCornerShape(24.dp)),
+        shape = RoundedCornerShape(24.dp),
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f)
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(8.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        Column(
+            modifier = Modifier.width(280.dp).padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            IconButton(onClick = viewModel::clearStrokes, modifier = Modifier.weight(1f)) {
-                Icon(Icons.Filled.DeleteOutline, contentDescription = stringResource(R.string.viewer_clear))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Markup Tools",
+                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
+                    color = MaterialTheme.colorScheme.primary
+                )
+                IconButton(onClick = onClose, modifier = Modifier.size(24.dp)) {
+                    Icon(
+                        imageVector = Icons.Filled.Close,
+                        contentDescription = stringResource(R.string.cd_close),
+                        modifier = Modifier.size(16.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
-            IconButton(onClick = viewModel::commitStrokes, modifier = Modifier.weight(1f)) {
-                Icon(Icons.Filled.Check, contentDescription = stringResource(R.string.viewer_apply))
+            Spacer(Modifier.height(12.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                val colors = listOf(
+                    Color(0xFF3B82F6), Color(0xFFEF4444), Color(0xFF10B981),
+                    Color(0xFFF59E0B), Color.Black, Color.White
+                )
+                colors.forEach { color ->
+                    val isSelected = currentColor == color
+                    Box(
+                        modifier = Modifier
+                            .size(26.dp)
+                            .clip(CircleShape)
+                            .background(color)
+                            .border(
+                                width = if (isSelected) 3.dp else 1.dp,
+                                color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Gray.copy(alpha = 0.4f),
+                                shape = CircleShape
+                            )
+                            .clickable { onColorSelected(color) }
+                    )
+                }
             }
-            IconButton(onClick = viewModel::toggleDrawingMode, modifier = Modifier.weight(1f)) {
-                Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.cd_close))
+            Spacer(Modifier.height(14.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Size",
+                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(end = 12.dp)
+                )
+                Slider(
+                    value = currentWidth,
+                    onValueChange = onWidthSelected,
+                    valueRange = 1f..15f,
+                    modifier = Modifier.weight(1f)
+                )
+                Box(
+                    modifier = Modifier.padding(start = 12.dp).size(18.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(currentWidth.coerceIn(2f, 16f).dp)
+                            .clip(CircleShape)
+                            .background(currentColor)
+                    )
+                }
+            }
+            Spacer(Modifier.height(14.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                OutlinedButton(
+                    onClick = onClear,
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(12.dp),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.DeleteOutline,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    Text(
+                        text = stringResource(R.string.viewer_clear),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Button(
+                    onClick = onApply,
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Check,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp),
+                        tint = Color.White
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    Text(
+                        text = stringResource(R.string.viewer_apply),
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
+                    )
+                }
             }
         }
     }
